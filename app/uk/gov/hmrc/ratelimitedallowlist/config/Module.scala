@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.ratelimitedallowlist.controllers
+package uk.gov.hmrc.ratelimitedallowlist.config
 
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import play.api.inject.{Binding, Module as AppModule}
+import play.api.{Configuration, Environment}
 
-import javax.inject.{Inject, Singleton}
+import java.time.Clock
 
-@Singleton()
-class MicroserviceHelloWorldController @Inject() (
-  cc: ControllerComponents
-) extends BackendController(cc):
+class Module extends AppModule:
 
-  val hello: Action[AnyContent] =
-    Action:
-      implicit request => Ok("Hello world")
+  override def bindings(
+    environment: Environment,
+    configuration: Configuration
+  ): Seq[Binding[_]] =
+    bind[Clock].toInstance(Clock.systemDefaultZone) ::
+      Nil

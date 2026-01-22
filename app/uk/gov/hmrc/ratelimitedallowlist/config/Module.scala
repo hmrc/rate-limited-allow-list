@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.ratelimitedallowlist
+package uk.gov.hmrc.ratelimitedallowlist.config
 
-import play.api.{Configuration, Environment}
 import play.api.inject.{Binding, Module as AppModule}
+import play.api.{Configuration, Environment}
 
 import java.time.Clock
 

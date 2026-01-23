@@ -1,2 +1,3 @@
 # microservice specific routes
 
+POST  /rate-limited-allow-list/services/:serviceName/lists/:listName            uk.gov.hmrc.ratelimitedallowlist.controllers.AllowListController.checkAllowList(serviceName: ServiceName, listName: ListName)

@@ -1,4 +1,5 @@
 import uk.gov.hmrc.DefaultBuildSettings
+import play.sbt.routes.RoutesKeys
 
 ThisBuild / majorVersion := 0
 ThisBuild / scalaVersion := "3.3.7"
@@ -10,6 +11,11 @@ lazy val microservice = Project("rate-limited-allow-list", file("."))
   .settings(
     PlayKeys.playDefaultPort := 11308,
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
+    RoutesKeys.routesImport ++= Seq(
+      "uk.gov.hmrc.ratelimitedallowlist.models.*"
+    ),
+  )
+  .settings(
     // https://www.scala-lang.org/2021/01/12/configuring-and-suppressing-warnings.html
     // suppress warnings in generated routes files
     scalacOptions += "-Wconf:src=routes/.*:s"

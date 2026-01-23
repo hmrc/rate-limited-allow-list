@@ -14,18 +14,21 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.ratelimitedallowlist.controllers
+package uk.gov.hmrc.ratelimitedallowlist.models
 
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import play.api.mvc.PathBindable
 
-import javax.inject.{Inject, Singleton}
+case class ServiceName(value: String)
 
-@Singleton()
-class MicroserviceHelloWorldController @Inject() (
-  cc: ControllerComponents
-) extends BackendController(cc):
+object ServiceName:
+  val REGEX_PATTERN = "^[a-zA-Z0-9-]+$"
 
-  val hello: Action[AnyContent] =
-    Action:
-      implicit request => Ok("Hello world")
+  given PathBindable[ServiceName] with
+    override def bind(key: String, value: String): Either[String, ServiceName] =
+      summon[PathBindable[String]]
+        .bind(key, value)
+        .filterOrElse(_.matches(REGEX_PATTERN), "Invalid format for service name")
+        .map(ServiceName.apply)
+
+    override def unbind(key: String, value: ServiceName): String =
+      value.value

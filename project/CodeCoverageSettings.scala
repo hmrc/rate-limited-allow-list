@@ -12,7 +12,8 @@ object CodeCoverageSettings {
     ".*Routes.*",
     "testOnly.*",
     "testOnlyDoNotUseInAppConf.*",
-    "uk.gov.hmrc.ratelimitedallowlist.config.Module"
+    "uk.gov.hmrc.ratelimitedallowlist.config.Module",
+    "uk.gov.hmrc.ratelimitedallowlist.models.*"
   )
 
   val settings: Seq[Setting[_]] = Seq(

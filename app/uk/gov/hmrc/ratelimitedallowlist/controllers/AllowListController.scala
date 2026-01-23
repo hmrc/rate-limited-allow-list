@@ -16,18 +16,19 @@
 
 package uk.gov.hmrc.ratelimitedallowlist.controllers
 
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
-import play.api.http.Status
-import play.api.test.Helpers.*
-import play.api.test.{FakeRequest, Helpers}
+import play.api.Logging
+import play.api.libs.json.Json
+import play.api.mvc.{Action, ControllerComponents}
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-class MicroserviceHelloWorldControllerSpec extends AnyWordSpec with Matchers:
+import javax.inject.{Inject, Singleton}
+import uk.gov.hmrc.ratelimitedallowlist.models.{CheckRequest, CheckResponse, ListName, ServiceName}
 
-  private val fakeRequest = FakeRequest("GET", "/")
-  private val controller = new MicroserviceHelloWorldController(Helpers.stubControllerComponents())
+@Singleton()
+class AllowListController @Inject() (
+  cc: ControllerComponents
+) extends BackendController(cc), Logging:
 
-  "GET /" should:
-    "return 200" in:
-      val result = controller.hello()(fakeRequest)
-      status(result) shouldBe Status.OK
+  def checkAllowList(serviceName: ServiceName, listName: ListName): Action[CheckRequest] =
+    Action(parse.json[CheckRequest]):
+      implicit request => Ok(Json.toJsObject(CheckResponse(included = false)))

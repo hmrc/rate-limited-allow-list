@@ -20,13 +20,10 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.freespec.AnyFreeSpec
 import play.api.http.Status
 import play.api.libs.json.Json
-import play.api.mvc.Result
 import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.ratelimitedallowlist.models.{CheckRequest, CheckResponse, Feature, Service}
 import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListDeleteResult, AllowListRepository, FakeAllowListRepository}
-
-import scala.concurrent.Future
 
 import scala.concurrent.Future
 
@@ -41,6 +38,7 @@ class AllowListControllerSpec extends AnyFreeSpec with Matchers:
   "POST checkAllowList" - {
     "return 200 with a failed check" in {
       val result  = controller.checkAllowList(service, feature)(fakeRequest)
+
       status(result) mustBe Status.OK
       contentAsJson(result) mustBe Json.toJsObject(CheckResponse(false))
     }

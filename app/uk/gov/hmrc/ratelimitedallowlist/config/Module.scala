@@ -18,14 +18,20 @@ package uk.gov.hmrc.ratelimitedallowlist.config
 
 import play.api.inject.{Binding, Module as AppModule}
 import play.api.{Configuration, Environment}
+import uk.gov.hmrc.ratelimitedallowlist.crypto.{HashingFunction, ShaHashingFunction, ShaHashingFunctionProvider}
+import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListRepository, AllowListRepositoryConfig, AllowListRepositoryConfigProvider, AllowListRepositoryImpl}
 
 import java.time.Clock
 
 class Module extends AppModule:
-
   override def bindings(
     environment: Environment,
     configuration: Configuration
   ): Seq[Binding[_]] =
-    bind[Clock].toInstance(Clock.systemDefaultZone) ::
-      Nil
+    List(
+      bind[Clock].toInstance(Clock.systemDefaultZone),
+      bind[AllowListRepositoryConfig].toProvider[AllowListRepositoryConfigProvider],
+      bind[ShaHashingFunction].toProvider[ShaHashingFunctionProvider],
+      bind[HashingFunction].to[ShaHashingFunction],
+      bind[AllowListRepository].to[AllowListRepositoryImpl]
+    )

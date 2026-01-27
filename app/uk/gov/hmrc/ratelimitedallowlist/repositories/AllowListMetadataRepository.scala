@@ -236,7 +236,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
             logger.info("Did not update token count")
             Done
           } else {
-            logger.info(s"Tokens updated for ${config.service} and ${config.service} to ${config.tokens} for id ${config.id}")
+            logger.info(s"Tokens updated for ${config.service} and ${config.feature} to ${config.tokens} for id ${config.id}")
             Done
           }
       }

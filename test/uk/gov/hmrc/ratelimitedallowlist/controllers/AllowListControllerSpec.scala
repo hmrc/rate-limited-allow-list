@@ -24,6 +24,9 @@ import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.ratelimitedallowlist.models.{CheckRequest, CheckResponse}
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
+import uk.gov.hmrc.ratelimitedallowlist.services.FakeAllowListService
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class AllowListControllerSpec extends AnyFreeSpec with Matchers:
   private val service = Service("service-a")
@@ -31,11 +34,21 @@ class AllowListControllerSpec extends AnyFreeSpec with Matchers:
   private val fakeRequest =
     FakeRequest("POST", routes.AllowListController.checkAllowList(service, feature).url)
       .withBody(CheckRequest("user-identifier"))
-  private val controller = new AllowListController(Helpers.stubControllerComponents())
 
   "POST checkAllowList" - {
-    "return 200 with a failed check" in {
-      val result  = controller.checkAllowList(service, feature)(fakeRequest)
+    "when checks pass, return 200 with a passing check" in {
+      val controller = AllowListController(Helpers.stubControllerComponents(), FakeAllowListService(true))
+
+      val result = controller.checkAllowList(service, feature)(fakeRequest)
+
+      status(result) mustBe Status.OK
+      contentAsJson(result) mustBe Json.toJsObject(CheckResponse(true))
+    }
+
+    "when checks fail, return 200 with a failed check" in {
+      val controller = AllowListController(Helpers.stubControllerComponents(), FakeAllowListService(false))
+
+      val result = controller.checkAllowList(service, feature)(fakeRequest)
 
       status(result) mustBe Status.OK
       contentAsJson(result) mustBe Json.toJsObject(CheckResponse(false))

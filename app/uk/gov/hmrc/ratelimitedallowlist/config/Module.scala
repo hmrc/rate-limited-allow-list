@@ -20,6 +20,7 @@ import play.api.inject.{Binding, Module as AppModule}
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.ratelimitedallowlist.crypto.{HashingFunction, ShaHashingFunction, ShaHashingFunctionProvider}
 import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListRepository, AllowListRepositoryConfig, AllowListRepositoryConfigProvider, AllowListRepositoryImpl}
+import uk.gov.hmrc.ratelimitedallowlist.services.{AllowListService, AllowListServiceImpl}
 
 import java.time.Clock
 
@@ -33,5 +34,6 @@ class Module extends AppModule:
       bind[AllowListRepositoryConfig].toProvider[AllowListRepositoryConfigProvider],
       bind[ShaHashingFunction].toProvider[ShaHashingFunctionProvider],
       bind[HashingFunction].to[ShaHashingFunction],
-      bind[AllowListRepository].to[AllowListRepositoryImpl]
+      bind[AllowListRepository].to[AllowListRepositoryImpl],
+      bind[AllowListService].to[AllowListServiceImpl]
     )

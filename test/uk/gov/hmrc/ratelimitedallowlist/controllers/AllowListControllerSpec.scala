@@ -22,10 +22,8 @@ import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
-import uk.gov.hmrc.ratelimitedallowlist.models.{CheckRequest, CheckResponse, Feature, Service}
-import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListDeleteResult, AllowListRepository, FakeAllowListRepository}
-
-import scala.concurrent.Future
+import uk.gov.hmrc.ratelimitedallowlist.models.{CheckRequest, CheckResponse}
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
 
 class AllowListControllerSpec extends AnyFreeSpec with Matchers:
   private val service = Service("service-a")

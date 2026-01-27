@@ -21,8 +21,8 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.freespec.AnyFreeSpecLike
 import org.scalatest.matchers.must.Matchers
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
-import uk.gov.hmrc.ratelimitedallowlist.crypto.ShaHashingFunction
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.AllowListEntry
+import uk.gov.hmrc.ratelimitedallowlist.crypto.{HashingFunction, ShaHashingFunction}
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListEntry, Feature, Service}
 
 import java.time.temporal.ChronoUnit
 import java.time.{Clock, Instant, ZoneId}
@@ -35,33 +35,33 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
   private val fixedInstant = Instant.now.truncatedTo(ChronoUnit.MILLIS)
   private val clock = Clock.fixed(fixedInstant, ZoneId.systemDefault())
 
-  private val hashingFn = ShaHashingFunction(hashKey = "5oTprrr+Aa6BPklnnwRjB+Xnxq3HjX/abQ8o+Q511JA=")
-  protected override val repository: AllowListRepository =
-    AllowListRepository(
+  private val hashingFn: HashingFunction = ShaHashingFunction(hashKey = "5oTprrr+Aa6BPklnnwRjB+Xnxq3HjX/abQ8o+Q511JA=")
+  override protected val repository: AllowListRepositoryImpl =
+    AllowListRepositoryImpl(
       mongoComponent = mongoComponent,
       hasher = hashingFn,
       config = config,
       clock = clock
     )
 
+  private val service = Service("service")
+  private val feature = Feature("feature")
+  private val service1 = Service("service 1")
+  private val service2 = Service("service 2")
+  private val feature1 = Feature("feature 1")
+  private val feature2 = Feature("feature 2")
+  private val value1 = "value1"
+  private val value2 = "value2"
+
   ".set" - {
     "must save an entry that does not already exist in the repository, hashing the value" in {
-      val service = "service"
-      val feature = "feature"
-      val value = "value"
-
-      repository.set(service, feature, value).futureValue
+      repository.set(service, feature, value1).futureValue
       val insertedRecord = findAll().futureValue.head
 
-      insertedRecord mustEqual AllowListEntry(service, feature, hashingFn.hash(value), fixedInstant)
+      insertedRecord mustEqual AllowListEntry(service, feature, hashingFn.hash(value1), fixedInstant)
     }
 
     "must save multiple different entries, hashing their values" in {
-      val service = "service"
-      val feature = "feature"
-      val value1 = "value1"
-      val value2 = "value2"
-
       Future.sequence(List(
         repository.set(service, feature, value1),
         repository.set(service, feature, value2)
@@ -76,11 +76,6 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
     }
 
     "must return without failing when a duplicate records is inserted" in {
-      val service = "service"
-      val feature = "feature"
-      val value1 = "value1"
-      val value2 = "value2"
-
       repository.set(service, feature, value1).futureValue
       repository.set(service, feature, value2).futureValue
       repository.set(service, feature, value1).futureValue
@@ -96,11 +91,6 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
 
   ".remove" - {
     "must remove a matching item" in {
-      val service = "service"
-      val feature = "feature"
-      val value1 = "value1"
-      val value2 = "value2"
-
       val entry1 = AllowListEntry(service, feature, hashingFn.hash(value1), fixedInstant)
       val entry2 = AllowListEntry(service, feature, hashingFn.hash(value2), fixedInstant)
 
@@ -116,10 +106,6 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
     }
 
     "will successful return a noop result if there is no item to delete" in {
-      val service = "service"
-      val feature = "feature"
-      val value1 = "value1"
-
       val result = repository.remove(service, feature, value1).futureValue
 
       result mustEqual AllowListDeleteResult.NoOpDeleteResult
@@ -129,17 +115,14 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
     ".clear" - {
 
       "must remove all items for a given service and feature" in {
-        val value1 = "value1"
-        val value2 = "value2"
-
-        val entry1 = AllowListEntry("service 1", "feature 1", hashingFn.hash(value1), fixedInstant)
-        val entry2 = AllowListEntry("service 1", "feature 1", hashingFn.hash(value2), fixedInstant)
-        val entry3 = AllowListEntry("service 1", "feature 2", hashingFn.hash(value1), fixedInstant)
-        val entry4 = AllowListEntry("service 2", "feature 1", hashingFn.hash(value1), fixedInstant)
+        val entry1 = AllowListEntry(service1, feature1, hashingFn.hash(value1), fixedInstant)
+        val entry2 = AllowListEntry(service1, feature1, hashingFn.hash(value2), fixedInstant)
+        val entry3 = AllowListEntry(service1, feature2, hashingFn.hash(value1), fixedInstant)
+        val entry4 = AllowListEntry(service2, feature1, hashingFn.hash(value1), fixedInstant)
 
         Future.sequence(Seq(entry1, entry2, entry3, entry4).map(insert)).futureValue
 
-        repository.clear("service 1", "feature 1").futureValue
+        repository.clear(service1, feature1).futureValue
 
         findAll().futureValue must contain theSameElementsAs Seq(entry3, entry4)
       }
@@ -148,45 +131,42 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
     ".check" - {
 
       "must return true when a record exists for the given service, feature and value" in {
-        val value = "value"
-        val entry = AllowListEntry("service", "feature", hashingFn.hash(value), fixedInstant)
+        val entry = AllowListEntry(service1, feature1, hashingFn.hash(value1), fixedInstant)
 
         insert(entry).futureValue
 
-        repository.check("service", "feature", value).futureValue mustBe true
+        repository.check(service1, feature1, value1).futureValue mustBe true
       }
 
       "must return false when a record for the given service, feature and value does not exist" in {
-
-        val value1 = "value1"
-        val value2 = "value2"
-
-        val entry1 = AllowListEntry("service", "feature", hashingFn.hash(value2), fixedInstant)
-        val entry2 = AllowListEntry("service", "feature 1", hashingFn.hash(value1), fixedInstant)
-        val entry3 = AllowListEntry("service 1", "feature", hashingFn.hash(value1), fixedInstant)
+        val entry1 = AllowListEntry(service1, feature1, hashingFn.hash(value1), fixedInstant)
+        val entry2 = AllowListEntry(service1, feature2, hashingFn.hash(value2), fixedInstant)
+        val entry3 = AllowListEntry(service2, feature1, hashingFn.hash(value2), fixedInstant)
 
         Future.sequence(Seq(entry1, entry2, entry3).map(insert)).futureValue
 
-        repository.check("service", "feature", value1).futureValue mustBe false
+        repository.check(service1, feature1, value2).futureValue mustBe false
       }
     }
 
     ".count" - {
 
       "must return the number of documents for a given service and feature" in {
-
-        val value1 = "value1"
-        val value2 = "value2"
-
-        val entry1 = AllowListEntry("service 1", "feature 1", hashingFn.hash(value1), fixedInstant)
-        val entry2 = AllowListEntry("service 1", "feature 1", hashingFn.hash(value2), fixedInstant)
-        val entry3 = AllowListEntry("service 1", "feature 2", hashingFn.hash(value1), fixedInstant)
-        val entry4 = AllowListEntry("service 2", "feature 1", hashingFn.hash(value1), fixedInstant)
+        val entry1 = AllowListEntry(service1, feature1, hashingFn.hash(value1), fixedInstant)
+        val entry2 = AllowListEntry(service1, feature1, hashingFn.hash(value2), fixedInstant)
+        val entry3 = AllowListEntry(service1, feature2, hashingFn.hash(value1), fixedInstant)
+        val entry4 = AllowListEntry(service2, feature1, hashingFn.hash(value1), fixedInstant)
 
         Future.sequence(Seq(entry1, entry2, entry3, entry4).map(insert)).futureValue
 
-        repository.count("service 1", "feature 1").futureValue mustBe 2
+        repository.count(service1, feature1).futureValue mustBe 2
       }
     }
   }
+
+  given Conversion[Service, String] with 
+    def apply(x: Service): String = x.value
+
+  given Conversion[Feature, String] with 
+    def apply(x: Feature): String = x.value
 }

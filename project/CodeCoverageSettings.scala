@@ -13,7 +13,8 @@ object CodeCoverageSettings {
     "testOnly.*",
     "testOnlyDoNotUseInAppConf.*",
     "uk.gov.hmrc.ratelimitedallowlist.config.Module",
-    "uk.gov.hmrc.ratelimitedallowlist.models.*"
+    "uk.gov.hmrc.ratelimitedallowlist.models.*",
+    "uk.gov.hmrc.ratelimitedallowlist.crypto.ShaHashingFunctionProvider"
   )
 
   val settings: Seq[Setting[_]] = Seq(

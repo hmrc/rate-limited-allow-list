@@ -22,13 +22,14 @@ import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.ratelimitedallowlist.models.{CheckRequest, CheckResponse, ListName, ServiceName}
+import uk.gov.hmrc.ratelimitedallowlist.models.{CheckRequest, CheckResponse}
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
 
 @Singleton()
 class AllowListController @Inject() (
   cc: ControllerComponents
 ) extends BackendController(cc), Logging:
 
-  def checkAllowList(serviceName: ServiceName, listName: ListName): Action[CheckRequest] =
+  def checkAllowList(serviceName: Service, listName: Feature): Action[CheckRequest] =
     Action(parse.json[CheckRequest]):
       implicit request => Ok(Json.toJsObject(CheckResponse(included = false)))

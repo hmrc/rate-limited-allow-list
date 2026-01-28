@@ -16,6 +16,6 @@
 
 package uk.gov.hmrc.ratelimitedallowlist.models
 
-trait Done
+sealed trait Done
 object Done extends Done
 

@@ -22,7 +22,7 @@ import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListEntry, Feature, 
 import org.mongodb.scala.model.*
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.ratelimitedallowlist.crypto.HashingFunction
+import uk.gov.hmrc.ratelimitedallowlist.crypto.OneWayHash
 
 import java.time.Clock
 import java.util.concurrent.TimeUnit
@@ -39,9 +39,9 @@ trait AllowListRepository {
 
 @Singleton
 class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
-                                    config: AllowListRepositoryConfig,
-                                    hasher: HashingFunction,
-                                    clock: Clock
+                                        config: AllowListRepositoryConfig,
+                                        oneWayHash: OneWayHash,
+                                        clock: Clock
                                    )(using ExecutionContext)
   extends PlayMongoRepository[AllowListEntry](
     collectionName = "allow-list",
@@ -66,7 +66,7 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
   import AllowListRepository.*
 
   def set(service: Service, feature: Feature, value: String): Future[Done] = {
-    val entries = AllowListEntry(service.value, feature.value, hasher.hash(value), clock.instant())
+    val entries = AllowListEntry(service.value, feature.value, oneWayHash(value), clock.instant())
 
     collection
       .insertOne(
@@ -81,7 +81,7 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
 
 
   def remove(service: Service, feature: Feature, value: String): Future[AllowListDeleteResult] = {
-    val hashedValue = hasher.hash(value)
+    val hashedValue = oneWayHash(value)
     collection
       .deleteMany(Filters.and(
         Filters.equal("service", service.value),
@@ -107,7 +107,7 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
       .find(Filters.and(
         Filters.equal("service", service.value),
         Filters.equal("feature", feature.value),
-        Filters.equal("hashedValue", hasher.hash(value))
+        Filters.equal("hashedValue", oneWayHash(value))
       )).toFuture()
     asdf.map(_.nonEmpty)
   }

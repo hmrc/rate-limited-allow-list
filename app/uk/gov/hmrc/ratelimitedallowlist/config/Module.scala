@@ -18,7 +18,7 @@ package uk.gov.hmrc.ratelimitedallowlist.config
 
 import play.api.inject.{Binding, Module as AppModule}
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.ratelimitedallowlist.crypto.{HashingFunction, ShaHashingFunction, ShaHashingFunctionProvider}
+import uk.gov.hmrc.ratelimitedallowlist.crypto.{OneWayHash, ShaOneWayHash, OneWayHashProvider}
 import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListRepository, AllowListRepositoryConfig, AllowListRepositoryConfigProvider, AllowListRepositoryImpl}
 import uk.gov.hmrc.ratelimitedallowlist.services.{AllowListService, AllowListServiceImpl}
 
@@ -32,8 +32,8 @@ class Module extends AppModule:
     List(
       bind[Clock].toInstance(Clock.systemDefaultZone),
       bind[AllowListRepositoryConfig].toProvider[AllowListRepositoryConfigProvider],
-      bind[ShaHashingFunction].toProvider[ShaHashingFunctionProvider],
-      bind[HashingFunction].to[ShaHashingFunction],
+      bind[ShaOneWayHash].toProvider[OneWayHashProvider],
+      bind[OneWayHash].to[ShaOneWayHash],
       bind[AllowListRepository].to[AllowListRepositoryImpl],
       bind[AllowListService].to[AllowListServiceImpl]
     )

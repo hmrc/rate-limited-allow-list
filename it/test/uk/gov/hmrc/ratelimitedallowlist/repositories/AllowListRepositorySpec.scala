@@ -21,7 +21,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.freespec.AnyFreeSpecLike
 import org.scalatest.matchers.must.Matchers
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
-import uk.gov.hmrc.ratelimitedallowlist.crypto.{HashingFunction, ShaHashingFunction}
+import uk.gov.hmrc.ratelimitedallowlist.crypto.{OneWayHash, ShaOneWayHash}
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListEntry, Feature, Service}
 
 import java.time.temporal.ChronoUnit
@@ -35,11 +35,11 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
   private val fixedInstant = Instant.now.truncatedTo(ChronoUnit.MILLIS)
   private val clock = Clock.fixed(fixedInstant, ZoneId.systemDefault())
 
-  private val hashingFn: HashingFunction = ShaHashingFunction(hashKey = "5oTprrr+Aa6BPklnnwRjB+Xnxq3HjX/abQ8o+Q511JA=")
+  private val hashingFn: OneWayHash = ShaOneWayHash(hashKey = "5oTprrr+Aa6BPklnnwRjB+Xnxq3HjX/abQ8o+Q511JA=")
   override protected val repository: AllowListRepositoryImpl =
     AllowListRepositoryImpl(
       mongoComponent = mongoComponent,
-      hasher = hashingFn,
+      oneWayHash = hashingFn,
       config = config,
       clock = clock
     )
@@ -58,7 +58,7 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
       repository.set(service, feature, value1).futureValue
       val insertedRecord = findAll().futureValue.head
 
-      insertedRecord mustEqual AllowListEntry(service, feature, hashingFn.hash(value1), fixedInstant)
+      insertedRecord mustEqual AllowListEntry(service, feature, hashingFn(value1), fixedInstant)
     }
 
     "must save multiple different entries, hashing their values" in {
@@ -70,8 +70,8 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
       val insertedRecords = findAll().futureValue
 
       insertedRecords must contain theSameElementsAs Seq(
-        AllowListEntry(service, feature, hashingFn.hash(value1), fixedInstant),
-        AllowListEntry(service, feature, hashingFn.hash(value2), fixedInstant)
+        AllowListEntry(service, feature, hashingFn(value1), fixedInstant),
+        AllowListEntry(service, feature, hashingFn(value2), fixedInstant)
       )
     }
 
@@ -83,16 +83,16 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
       val result = findAll().futureValue
 
       result must contain theSameElementsAs Seq(
-        AllowListEntry(service, feature, hashingFn.hash(value1), fixedInstant),
-        AllowListEntry(service, feature, hashingFn.hash(value2), fixedInstant)
+        AllowListEntry(service, feature, hashingFn(value1), fixedInstant),
+        AllowListEntry(service, feature, hashingFn(value2), fixedInstant)
       )
     }
   }
 
   ".remove" - {
     "must remove a matching item" in {
-      val entry1 = AllowListEntry(service, feature, hashingFn.hash(value1), fixedInstant)
-      val entry2 = AllowListEntry(service, feature, hashingFn.hash(value2), fixedInstant)
+      val entry1 = AllowListEntry(service, feature, hashingFn(value1), fixedInstant)
+      val entry2 = AllowListEntry(service, feature, hashingFn(value2), fixedInstant)
 
       insert(entry1).futureValue
       insert(entry2).futureValue
@@ -115,10 +115,10 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
     ".clear" - {
 
       "must remove all items for a given service and feature" in {
-        val entry1 = AllowListEntry(service1, feature1, hashingFn.hash(value1), fixedInstant)
-        val entry2 = AllowListEntry(service1, feature1, hashingFn.hash(value2), fixedInstant)
-        val entry3 = AllowListEntry(service1, feature2, hashingFn.hash(value1), fixedInstant)
-        val entry4 = AllowListEntry(service2, feature1, hashingFn.hash(value1), fixedInstant)
+        val entry1 = AllowListEntry(service1, feature1, hashingFn(value1), fixedInstant)
+        val entry2 = AllowListEntry(service1, feature1, hashingFn(value2), fixedInstant)
+        val entry3 = AllowListEntry(service1, feature2, hashingFn(value1), fixedInstant)
+        val entry4 = AllowListEntry(service2, feature1, hashingFn(value1), fixedInstant)
 
         Future.sequence(Seq(entry1, entry2, entry3, entry4).map(insert)).futureValue
 
@@ -131,7 +131,7 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
     ".check" - {
 
       "must return true when a record exists for the given service, feature and value" in {
-        val entry = AllowListEntry(service1, feature1, hashingFn.hash(value1), fixedInstant)
+        val entry = AllowListEntry(service1, feature1, hashingFn(value1), fixedInstant)
 
         insert(entry).futureValue
 
@@ -139,9 +139,9 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
       }
 
       "must return false when a record for the given service, feature and value does not exist" in {
-        val entry1 = AllowListEntry(service1, feature1, hashingFn.hash(value1), fixedInstant)
-        val entry2 = AllowListEntry(service1, feature2, hashingFn.hash(value2), fixedInstant)
-        val entry3 = AllowListEntry(service2, feature1, hashingFn.hash(value2), fixedInstant)
+        val entry1 = AllowListEntry(service1, feature1, hashingFn(value1), fixedInstant)
+        val entry2 = AllowListEntry(service1, feature2, hashingFn(value2), fixedInstant)
+        val entry3 = AllowListEntry(service2, feature1, hashingFn(value2), fixedInstant)
 
         Future.sequence(Seq(entry1, entry2, entry3).map(insert)).futureValue
 
@@ -152,10 +152,10 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
     ".count" - {
 
       "must return the number of documents for a given service and feature" in {
-        val entry1 = AllowListEntry(service1, feature1, hashingFn.hash(value1), fixedInstant)
-        val entry2 = AllowListEntry(service1, feature1, hashingFn.hash(value2), fixedInstant)
-        val entry3 = AllowListEntry(service1, feature2, hashingFn.hash(value1), fixedInstant)
-        val entry4 = AllowListEntry(service2, feature1, hashingFn.hash(value1), fixedInstant)
+        val entry1 = AllowListEntry(service1, feature1, hashingFn(value1), fixedInstant)
+        val entry2 = AllowListEntry(service1, feature1, hashingFn(value2), fixedInstant)
+        val entry3 = AllowListEntry(service1, feature2, hashingFn(value1), fixedInstant)
+        val entry4 = AllowListEntry(service2, feature1, hashingFn(value1), fixedInstant)
 
         Future.sequence(Seq(entry1, entry2, entry3, entry4).map(insert)).futureValue
 

@@ -20,11 +20,11 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.freespec.AnyFreeSpecLike
 import org.scalatest.matchers.must.Matchers
 
-class ShaHashingFunctionSpec extends AnyFreeSpecLike, Matchers, ScalaFutures:
+class ShaOneWayHashSpec extends AnyFreeSpecLike, Matchers, ScalaFutures:
 
   "Sha256Checksum should hash value" in {
-    val hashingFunction = ShaHashingFunction("5oTprrr+Aa6BPklnnwRjB+Xnxq3HjX/abQ8o+Q511JA=")
-    val result = hashingFunction.hash("value to hash")
+    val shaHash = ShaOneWayHash("5oTprrr+Aa6BPklnnwRjB+Xnxq3HjX/abQ8o+Q511JA=")
+    val result = shaHash("value to hash")
 
     result mustEqual "VKD8t5IwbgVlTMxHFgqcwJ6AT333n2GRQBfAcN9Zt66TtpiaPfzqD70V1tKCDpwr3rJfdFTuTQXqDL4wIm1Qxg=="
   }

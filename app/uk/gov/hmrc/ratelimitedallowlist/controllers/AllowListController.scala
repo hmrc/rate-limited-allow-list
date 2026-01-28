@@ -20,15 +20,22 @@ import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
+import uk.gov.hmrc.ratelimitedallowlist.models.{CheckRequest, CheckResponse}
+import uk.gov.hmrc.ratelimitedallowlist.services.AllowListService
 
 import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.ratelimitedallowlist.models.{CheckRequest, CheckResponse, ListName, ServiceName}
+import scala.concurrent.ExecutionContext
 
 @Singleton()
 class AllowListController @Inject() (
-  cc: ControllerComponents
-) extends BackendController(cc), Logging:
+  cc: ControllerComponents,
+  service: AllowListService
+)(using ExecutionContext) extends BackendController(cc), Logging:
 
-  def checkAllowList(serviceName: ServiceName, listName: ListName): Action[CheckRequest] =
-    Action(parse.json[CheckRequest]):
-      implicit request => Ok(Json.toJsObject(CheckResponse(included = false)))
+  def checkAllowList(serviceName: Service, feature: Feature): Action[CheckRequest] =
+    Action.async(parse.json[CheckRequest]):
+      request =>
+        service.check(serviceName, feature, request.body.identifier).map:
+          checkResult =>
+             Ok(Json.toJsObject(CheckResponse(included = checkResult)))

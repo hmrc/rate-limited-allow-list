@@ -14,21 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.ratelimitedallowlist.models
+package uk.gov.hmrc.ratelimitedallowlist.models.domain
 
-import play.api.mvc.PathBindable
+import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
-case class ServiceName(value: String)
+import java.time.Instant
 
-object ServiceName:
-  val REGEX_PATTERN = "^[a-zA-Z0-9-]+$"
+case class AllowListEntry(service: String, feature: String, hashedValue: String, created: Instant)
 
-  given PathBindable[ServiceName] with
-    override def bind(key: String, value: String): Either[String, ServiceName] =
-      summon[PathBindable[String]]
-        .bind(key, value)
-        .filterOrElse(_.matches(REGEX_PATTERN), "Invalid format for service name")
-        .map(ServiceName.apply)
-
-    override def unbind(key: String, value: ServiceName): String =
-      value.value
+object AllowListEntry extends MongoJavatimeFormats.Implicits:
+  val format: OFormat[AllowListEntry] = Json.format

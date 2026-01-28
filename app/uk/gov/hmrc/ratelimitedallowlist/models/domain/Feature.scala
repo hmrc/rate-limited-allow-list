@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.ratelimitedallowlist.models
+package uk.gov.hmrc.ratelimitedallowlist.models.domain
 
 import play.api.mvc.PathBindable
 
-case class ListName(value: String)
+case class Feature(value: String)
 
-object ListName:
+object Feature:
   val REGEX_PATTERN = "^[a-zA-Z0-9-]+$"
 
-  given PathBindable[ListName] with
-    override def bind(key: String, value: String): Either[String, ListName] =
+  given PathBindable[Feature] with
+    override def bind(key: String, value: String): Either[String, Feature] =
       summon[PathBindable[String]]
         .bind(key, value)
-        .filterOrElse(_.matches(REGEX_PATTERN), "Invalid format for list name")
-        .map(ListName.apply)
+        .filterOrElse(_.matches(REGEX_PATTERN), "Invalid format for a feature")
+        .map(Feature.apply)
 
-    override def unbind(key: String, value: ListName): String =
+    override def unbind(key: String, value: Feature): String =
       value.value

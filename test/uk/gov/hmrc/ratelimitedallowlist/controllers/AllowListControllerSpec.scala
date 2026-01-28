@@ -20,24 +20,36 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.freespec.AnyFreeSpec
 import play.api.http.Status
 import play.api.libs.json.Json
-import play.api.mvc.Result
 import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
-import uk.gov.hmrc.ratelimitedallowlist.models.{CheckRequest, CheckResponse, ListName, ServiceName}
+import uk.gov.hmrc.ratelimitedallowlist.models.{CheckRequest, CheckResponse}
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
+import uk.gov.hmrc.ratelimitedallowlist.services.FakeAllowListService
 
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class AllowListControllerSpec extends AnyFreeSpec with Matchers:
-  val serviceName = ServiceName("service-a")
-  val listName = ListName("list-1")
+  private val service = Service("service-a")
+  private val feature = Feature("list-1")
   private val fakeRequest =
-    FakeRequest("POST", routes.AllowListController.checkAllowList(serviceName, listName).url)
+    FakeRequest("POST", routes.AllowListController.checkAllowList(service, feature).url)
       .withBody(CheckRequest("user-identifier"))
-  private val controller = new AllowListController(Helpers.stubControllerComponents())
 
   "POST checkAllowList" - {
-    "return 200 with a failed check" in {
-      val result: Future[Result] = controller.checkAllowList(serviceName, listName)(fakeRequest)
+    "when checks pass, return 200 with a passing check" in {
+      val controller = AllowListController(Helpers.stubControllerComponents(), FakeAllowListService(true))
+
+      val result = controller.checkAllowList(service, feature)(fakeRequest)
+
+      status(result) mustBe Status.OK
+      contentAsJson(result) mustBe Json.toJsObject(CheckResponse(true))
+    }
+
+    "when checks fail, return 200 with a failed check" in {
+      val controller = AllowListController(Helpers.stubControllerComponents(), FakeAllowListService(false))
+
+      val result = controller.checkAllowList(service, feature)(fakeRequest)
+
       status(result) mustBe Status.OK
       contentAsJson(result) mustBe Json.toJsObject(CheckResponse(false))
     }

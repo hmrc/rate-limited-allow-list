@@ -14,30 +14,30 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.ratelimitedallowlist.models
+package uk.gov.hmrc.ratelimitedallowlist.models.domain
 
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import play.api.mvc.PathBindable
 
-class ServiceNameSpec extends AnyFreeSpec with Matchers:
-  val pathBindable = summon[PathBindable[ServiceName]]
+class ServiceSpec extends AnyFreeSpec with Matchers:
+  val pathBindable = summon[PathBindable[Service]]
 
   "PathBindable bind" - {
     "pass when the path is valid" in {
-      val expected = ServiceName("asdf-ASDF-123")
+      val expected = Service("asdf-ASDF-123")
       pathBindable.bind("serviceName", expected.value) mustBe Right(expected)
     }
 
     "fail when the path is valid" in {
-      val expected = ServiceName("asdf_ASDF_123")
+      val expected = Service("asdf_ASDF_123")
       pathBindable.bind("serviceName", expected.value) mustBe Left("Invalid format for service name")
     }
   }
 
   "PathBindable unbind" - {
     "pass" in {
-      val value = ServiceName("asdf-ASDF-123")
+      val value = Service("asdf-ASDF-123")
       pathBindable.unbind("serviceName", value) mustBe value.value
     }
   }

@@ -33,9 +33,9 @@ class AllowListController @Inject() (
   service: AllowListService
 )(using ExecutionContext) extends BackendController(cc), Logging:
 
-  def checkAllowList(serviceName: Service, listName: Feature): Action[CheckRequest] =
+  def checkAllowList(serviceName: Service, feature: Feature): Action[CheckRequest] =
     Action.async(parse.json[CheckRequest]):
       request =>
-        service.check(serviceName, listName, request.body.identifier).map:
+        service.check(serviceName, feature, request.body.identifier).map:
           checkResult =>
              Ok(Json.toJsObject(CheckResponse(included = checkResult)))

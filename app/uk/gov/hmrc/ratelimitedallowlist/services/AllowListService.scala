@@ -24,7 +24,7 @@ import javax.inject.Inject
 import scala.concurrent.Future
 
 trait AllowListService:
-  def check(serviceName: Service, listName: Feature, identifier: String): Future[Boolean]
+  def check(service: Service, feature: Feature, identifier: String): Future[Boolean]
 
 class AllowListServiceImpl @Inject()(repository: AllowListRepository,
                                      configuration: Configuration) extends AllowListService:

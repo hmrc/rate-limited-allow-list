@@ -66,21 +66,18 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
   import AllowListRepository.*
 
   def set(service: Service, feature: Feature, value: String): Future[Done] = {
-    val entries = AllowListEntry(service.value, feature.value, oneWayHash(value), clock.instant())
+    val entry = AllowListEntry(service.value, feature.value, oneWayHash(value), clock.instant())
 
     collection
-      .insertOne(
-        entries,
-      )
+      .insertOne(entry)
       .toFuture()
+      .map(_ => Done)
       .recover {
         case e: MongoException if e.getCode == DuplicateErrorCode => Done
       }
-      .map(_ => Done)
   }
 
-
-  def remove(service: Service, feature: Feature, value: String): Future[AllowListDeleteResult] = {
+  def remove(service: Service, feature: Feature, value: String): Future[AllowListDeleteResult] =
     val hashedValue = oneWayHash(value)
     collection
       .deleteMany(Filters.and(
@@ -92,7 +89,6 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
         case deleteResult if deleteResult.getDeletedCount == 0 => AllowListDeleteResult.NoOpDeleteResult
         case _ => AllowListDeleteResult.DeleteSuccessful
       }
-  }
 
   def clear(service: Service, feature: Feature): Future[Done] =
     collection
@@ -102,15 +98,15 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
       )).toFuture()
       .map(_ => Done)
 
-  def check(service: Service, feature: Feature, value: String): Future[Boolean] = {
-    val asdf: Future[Seq[AllowListEntry]] = collection
+  def check(service: Service, feature: Feature, value: String): Future[Boolean] =
+    collection
       .find(Filters.and(
         Filters.equal("service", service.value),
         Filters.equal("feature", feature.value),
         Filters.equal("hashedValue", oneWayHash(value))
-      )).toFuture()
-    asdf.map(_.nonEmpty)
-  }
+      ))
+      .toFuture()
+      .map(_.nonEmpty)
 
   def count(service: Service, feature: Feature): Future[Long] =
     collection.countDocuments(Filters.and(

@@ -31,7 +31,6 @@ import scala.concurrent.{ExecutionContext, Future}
 
 trait AllowListRepository {
   def set(service: Service, feature: Feature, value: String): Future[Done]
-  def remove(service: Service, feature: Feature, value: String): Future[AllowListDeleteResult]
   def clear(service: Service, feature: Feature): Future[Done]
   def check(service: Service, feature: Feature, value: String): Future[Boolean]
   def count(service: Service, feature: Feature): Future[Long]
@@ -76,19 +75,6 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
         case e: MongoException if e.getCode == DuplicateErrorCode => Done
       }
   }
-
-  def remove(service: Service, feature: Feature, value: String): Future[AllowListDeleteResult] =
-    val hashedValue = oneWayHash(value)
-    collection
-      .deleteMany(Filters.and(
-        Filters.equal("service", service.value),
-        Filters.equal("feature", feature.value),
-        Filters.equal("hashedValue", hashedValue)
-      )).toFuture()
-      .map {
-        case deleteResult if deleteResult.getDeletedCount == 0 => AllowListDeleteResult.NoOpDeleteResult
-        case _ => AllowListDeleteResult.DeleteSuccessful
-      }
 
   def clear(service: Service, feature: Feature): Future[Done] =
     collection

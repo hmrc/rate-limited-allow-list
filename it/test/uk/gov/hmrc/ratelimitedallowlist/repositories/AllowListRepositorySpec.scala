@@ -89,78 +89,51 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
     }
   }
 
-  ".remove" - {
-    "must remove a matching item" in {
-      val entry1 = AllowListEntry(service, feature, hashingFn(value1), fixedInstant)
-      val entry2 = AllowListEntry(service, feature, hashingFn(value2), fixedInstant)
+  ".clear" - {
+    "must remove all items for a given service and feature" in {
+      val entry1 = AllowListEntry(service1, feature1, hashingFn(value1), fixedInstant)
+      val entry2 = AllowListEntry(service1, feature1, hashingFn(value2), fixedInstant)
+      val entry3 = AllowListEntry(service1, feature2, hashingFn(value1), fixedInstant)
+      val entry4 = AllowListEntry(service2, feature1, hashingFn(value1), fixedInstant)
 
-      insert(entry1).futureValue
-      insert(entry2).futureValue
+      Future.sequence(Seq(entry1, entry2, entry3, entry4).map(insert)).futureValue
 
-      findAll().futureValue must contain theSameElementsAs Seq(entry1, entry2)
+      repository.clear(service1, feature1).futureValue
 
-      val result = repository.remove(service, feature, value1).futureValue
+      findAll().futureValue must contain theSameElementsAs Seq(entry3, entry4)
+    }
+  }
 
-      result mustEqual AllowListDeleteResult.DeleteSuccessful
-      findAll().futureValue must contain only entry2
+  ".check" - {
+    "must return true when a record exists for the given service, feature and value" in {
+      val entry = AllowListEntry(service1, feature1, hashingFn(value1), fixedInstant)
+
+      insert(entry).futureValue
+
+      repository.check(service1, feature1, value1).futureValue mustBe true
     }
 
-    "will successful return a noop result if there is no item to delete" in {
-      val result = repository.remove(service, feature, value1).futureValue
+    "must return false when a record for the given service, feature and value does not exist" in {
+      val entry1 = AllowListEntry(service1, feature1, hashingFn(value1), fixedInstant)
+      val entry2 = AllowListEntry(service1, feature2, hashingFn(value2), fixedInstant)
+      val entry3 = AllowListEntry(service2, feature1, hashingFn(value2), fixedInstant)
 
-      result mustEqual AllowListDeleteResult.NoOpDeleteResult
-      findAll().futureValue must be(empty)
+      Future.sequence(Seq(entry1, entry2, entry3).map(insert)).futureValue
+
+      repository.check(service1, feature1, value2).futureValue mustBe false
     }
+  }
 
-    ".clear" - {
+  ".count" - {
+    "must return the number of documents for a given service and feature" in {
+      val entry1 = AllowListEntry(service1, feature1, hashingFn(value1), fixedInstant)
+      val entry2 = AllowListEntry(service1, feature1, hashingFn(value2), fixedInstant)
+      val entry3 = AllowListEntry(service1, feature2, hashingFn(value1), fixedInstant)
+      val entry4 = AllowListEntry(service2, feature1, hashingFn(value1), fixedInstant)
 
-      "must remove all items for a given service and feature" in {
-        val entry1 = AllowListEntry(service1, feature1, hashingFn(value1), fixedInstant)
-        val entry2 = AllowListEntry(service1, feature1, hashingFn(value2), fixedInstant)
-        val entry3 = AllowListEntry(service1, feature2, hashingFn(value1), fixedInstant)
-        val entry4 = AllowListEntry(service2, feature1, hashingFn(value1), fixedInstant)
+      Future.sequence(Seq(entry1, entry2, entry3, entry4).map(insert)).futureValue
 
-        Future.sequence(Seq(entry1, entry2, entry3, entry4).map(insert)).futureValue
-
-        repository.clear(service1, feature1).futureValue
-
-        findAll().futureValue must contain theSameElementsAs Seq(entry3, entry4)
-      }
-    }
-
-    ".check" - {
-
-      "must return true when a record exists for the given service, feature and value" in {
-        val entry = AllowListEntry(service1, feature1, hashingFn(value1), fixedInstant)
-
-        insert(entry).futureValue
-
-        repository.check(service1, feature1, value1).futureValue mustBe true
-      }
-
-      "must return false when a record for the given service, feature and value does not exist" in {
-        val entry1 = AllowListEntry(service1, feature1, hashingFn(value1), fixedInstant)
-        val entry2 = AllowListEntry(service1, feature2, hashingFn(value2), fixedInstant)
-        val entry3 = AllowListEntry(service2, feature1, hashingFn(value2), fixedInstant)
-
-        Future.sequence(Seq(entry1, entry2, entry3).map(insert)).futureValue
-
-        repository.check(service1, feature1, value2).futureValue mustBe false
-      }
-    }
-
-    ".count" - {
-
-      "must return the number of documents for a given service and feature" in {
-        val entry1 = AllowListEntry(service1, feature1, hashingFn(value1), fixedInstant)
-        val entry2 = AllowListEntry(service1, feature1, hashingFn(value2), fixedInstant)
-        val entry3 = AllowListEntry(service1, feature2, hashingFn(value1), fixedInstant)
-        val entry4 = AllowListEntry(service2, feature1, hashingFn(value1), fixedInstant)
-
-        Future.sequence(Seq(entry1, entry2, entry3, entry4).map(insert)).futureValue
-
-        repository.count(service1, feature1).futureValue mustBe 2
-      }
+      repository.count(service1, feature1).futureValue mustBe 2
     }
   }
 

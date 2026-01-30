@@ -17,11 +17,15 @@
 package uk.gov.hmrc.ratelimitedallowlist.services
 
 import org.scalatest.concurrent.ScalaFutures
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import play.api.Configuration
-import uk.gov.hmrc.ratelimitedallowlist.repositories.FakeAllowListRepository
+import uk.gov.hmrc.ratelimitedallowlist.models.Done
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
+import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResultResult.{NoOpUpdateResult, UpdateSuccessful}
+import uk.gov.hmrc.ratelimitedallowlist.repositories.{FakeAllowListMetadataRepository, FakeAllowListRepository}
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class AllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFutures:
   private val service1 = Service("service1")
@@ -29,27 +33,47 @@ class AllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFutures:
   private val identifier = "identifier value"
 
   ".check" - {
-    "returns false when the checks are disabled in configuration" in {
-      val repo = FakeAllowListRepository()
-      val config = Configuration.from(Map("features.allow-checks" -> "false"))
-      val service = AllowListServiceImpl(repo, config)
+    "when check are disabled in configuration" - {
+      "returns false" in {
+        val metadataRepository = FakeAllowListMetadataRepository()
+        val allowListRepository = FakeAllowListRepository()
+        val config = Configuration.from(Map("features.allow-checks" -> "false"))
+        val service = AllowListServiceImpl(metadataRepository, allowListRepository, config)
 
-      service.check(service1, feature1, identifier).futureValue mustEqual false
+        service.check(service1, feature1, identifier).futureValue mustEqual false
+      }
     }
 
-    "returns false when the checks are enabled in configuration and the repository returns false" in {
-      val repo = FakeAllowListRepository(checkResult = Some(false))
-      val config = Configuration.from(Map("features.allow-checks" -> "true"))
-      val service = AllowListServiceImpl(repo, config)
+    "when checks are enabled" - {
+      "returns false" - {
+        "when the metadataRepo does not issues a token and allowListRepo returns false" in {
+          val metadataRepository = FakeAllowListMetadataRepository(issueTokenResult = Some(NoOpUpdateResult))
+          val allowListRepository = FakeAllowListRepository(checkResult = Some(false))
+          val config = Configuration.from(Map("features.allow-checks" -> "true"))
+          val service = AllowListServiceImpl(metadataRepository, allowListRepository, config)
 
-      service.check(service1, feature1, identifier).futureValue mustEqual false
-    }
+          service.check(service1, feature1, identifier).futureValue mustEqual false
+        }
+      }
 
-    "returns true when the checks are enabled in configuration and the repository returns true" in {
-      val repo = FakeAllowListRepository(checkResult = Some(true))
-      val config = Configuration.from(Map("features.allow-checks" -> "true"))
-      val service = AllowListServiceImpl(repo, config)
+      "returns true" - {
+        "when the metadataRepo issues a token and allowListRepo check returns false" in {
+          val metadataRepository = FakeAllowListMetadataRepository(issueTokenResult = Some(UpdateSuccessful))
+          val allowListRepository = FakeAllowListRepository(checkResult = Some(false), setResult = Some(Done))
+          val config = Configuration.from(Map("features.allow-checks" -> "true"))
+          val service = AllowListServiceImpl(metadataRepository, allowListRepository, config)
 
-      service.check(service1, feature1, identifier).futureValue mustEqual true
+          service.check(service1, feature1, identifier).futureValue mustEqual true
+ }
+        
+        "when the allowListRepo returns true" in {
+          val metadataRepository = FakeAllowListMetadataRepository()
+          val allowListRepository = FakeAllowListRepository(checkResult = Some(true))
+          val config = Configuration.from(Map("features.allow-checks" -> "true"))
+          val service = AllowListServiceImpl(metadataRepository, allowListRepository, config)
+
+          service.check(service1, feature1, identifier).futureValue mustEqual true
+        }
+      }
     }
   }

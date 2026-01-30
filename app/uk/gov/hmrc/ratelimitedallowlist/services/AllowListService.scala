@@ -18,22 +18,27 @@ package uk.gov.hmrc.ratelimitedallowlist.services
 
 import play.api.Configuration
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
-import uk.gov.hmrc.ratelimitedallowlist.repositories.AllowListRepository
+import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListMetadataRepository, AllowListRepository, UpdateResultResult}
 
 import javax.inject.Inject
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 trait AllowListService:
   def check(service: Service, feature: Feature, identifier: String): Future[Boolean]
 
-class AllowListServiceImpl @Inject()(repository: AllowListRepository,
-                                     configuration: Configuration) extends AllowListService:
- 
+class AllowListServiceImpl @Inject()(metadata: AllowListMetadataRepository,
+                                     allowList: AllowListRepository,
+                                     configuration: Configuration)(using ExecutionContext) extends AllowListService:
+
   private val checkIsEnabled = configuration.get[Boolean]("features.allow-checks")
   
-  override def check(service: Service, feature: Feature, identifier: String): Future[Boolean] = {
+  override def check(service: Service, feature: Feature, identifier: String): Future[Boolean] =
     if checkIsEnabled then
-      repository.check(service, feature, identifier)
-    else 
+      allowList.check(service, feature, identifier).flatMap:
+        case true => Future.successful(true)
+        case false => metadata.issueToken(service, feature).flatMap:
+          case UpdateResultResult.NoOpUpdateResult => Future.successful(false)
+          case UpdateResultResult.UpdateSuccessful =>
+            allowList.set(service, feature, identifier).map(_ => true)
+    else
       Future.successful(false)
-  }

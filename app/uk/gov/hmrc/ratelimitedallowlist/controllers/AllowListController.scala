@@ -19,6 +19,7 @@ package uk.gov.hmrc.ratelimitedallowlist.controllers
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, ControllerComponents}
+import uk.gov.hmrc.mdc.Mdc
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
 import uk.gov.hmrc.ratelimitedallowlist.models.{CheckRequest, CheckResponse}
@@ -36,6 +37,7 @@ class AllowListController @Inject() (
   def checkAllowList(serviceName: Service, feature: Feature): Action[CheckRequest] =
     Action.async(parse.json[CheckRequest]):
       request =>
+        Mdc.putMdc(Map("service" -> serviceName.value, "feature" -> feature.value,"api-op" -> "check"))
         service.check(serviceName, feature, request.body.identifier).map:
           checkResult =>
              Ok(Json.toJsObject(CheckResponse(included = checkResult)))

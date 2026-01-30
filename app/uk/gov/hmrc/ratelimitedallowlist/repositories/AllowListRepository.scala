@@ -62,8 +62,6 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
     )
   ) with AllowListRepository {
 
-  import AllowListRepository.*
-
   def set(service: Service, feature: Feature, value: String): Future[Done] = {
     val entry = AllowListEntry(service.value, feature.value, oneWayHash(value), clock.instant())
 
@@ -99,9 +97,5 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
       Filters.equal("service", service.value),
       Filters.equal("feature", feature.value)
     )).toFuture()
-}
-
-object AllowListRepository {
-  val DuplicateErrorCode = 11000
 }
 

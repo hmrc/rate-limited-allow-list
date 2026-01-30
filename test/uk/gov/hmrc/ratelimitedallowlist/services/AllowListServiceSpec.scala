@@ -21,10 +21,7 @@ import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import play.api.Configuration
-import play.api.mvc.PathBindable
 import uk.gov.hmrc.ratelimitedallowlist.repositories.FakeAllowListRepository
-
-import scala.concurrent.Future
 
 class AllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFutures:
   private val service1 = Service("service1")

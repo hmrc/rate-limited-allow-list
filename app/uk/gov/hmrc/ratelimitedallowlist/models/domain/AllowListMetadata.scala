@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.ratelimitedallowlist.repositories
+package uk.gov.hmrc.ratelimitedallowlist.models.domain
 
-enum AllowListDeleteResult:
-  case DeleteSuccessful, NoOpDeleteResult
+import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+
+import java.time.Instant
+
+case class AllowListMetadata(service: String, feature: String, tokenCount: Int, canIssueTokens: Boolean, created: Instant, lastUpdated: Instant)
+
+object AllowListMetadata extends MongoJavatimeFormats.Implicits:
+  val format: OFormat[AllowListMetadata] = Json.format

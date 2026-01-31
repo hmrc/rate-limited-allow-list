@@ -109,7 +109,6 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       repository.get(service1, feature2).futureValue mustBe None
       repository.get(service2, feature1).futureValue mustBe None
     }
-
   }
 
   ".clear" - {
@@ -152,18 +151,22 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       Future.sequence(List(entry1, entry2, entry3, entry4).map(insert)).futureValue
 
       clock.fastForwardTime(60)
+      val time1 = clock.instant()
 
       val result1 = repository.addTokens(service1, feature1, 10).futureValue
       result1 mustEqual UpdateResultResult.UpdateSuccessful
 
+      clock.fastForwardTime(60)
+      val time2 = clock.instant()
+      
       val result2 = repository.addTokens(service2, feature2, 189).futureValue
       result2 mustEqual UpdateResultResult.UpdateSuccessful
 
       findAll().futureValue must contain theSameElementsAs List(
-        AllowListMetadata(service1, feature1, 20, false, fixedInstant, clock.instant()),
-        AllowListMetadata(service1, feature2, 10, true, fixedInstant, fixedInstant),
-        AllowListMetadata(service2, feature1, 10, true, fixedInstant, fixedInstant),
-        AllowListMetadata(service2, feature2, 199, true, fixedInstant, clock.instant()),
+        entry1.copy(tokenCount = 20, lastUpdated = time1),
+        entry2,
+        entry3,
+        entry4.copy(tokenCount = 199, lastUpdated = time2)
       )
     }
 
@@ -173,7 +176,8 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
     }
 
     "returns a failed future with IllegalArgumentException when the increment value is invalid" in {
-      insert(AllowListMetadata(service1, feature1, 10, true, fixedInstant, fixedInstant)).futureValue
+      val entry1 = AllowListMetadata(service1, feature1, 10, true, fixedInstant, fixedInstant)
+      insert(entry1).futureValue
 
       val result1 = repository.addTokens(service1, feature1, -1).failed.futureValue
       val result2 = repository.addTokens(service1, feature1, 0).failed.futureValue
@@ -181,9 +185,7 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       result1 mustBe an[IllegalArgumentException]
       result2 mustBe an[IllegalArgumentException]
 
-      findAll().futureValue must contain theSameElementsAs List(
-        AllowListMetadata(service1, feature1, 10, true, fixedInstant, fixedInstant)
-      )
+      findAll().futureValue must contain theSameElementsAs List(entry1)
     }
   }
 
@@ -201,8 +203,8 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       repository.stopIssuingTokens(service1, feature1).futureValue
 
       findAll().futureValue must contain theSameElementsAs List(
-        AllowListMetadata(service1, feature1, 0, false, fixedInstant, clock.instant()),
-        AllowListMetadata(service1, feature2, 0, true, fixedInstant, fixedInstant),
+        entry1.copy(canIssueTokens = false, lastUpdated = clock.instant()),
+        entry2
       )
     }
 
@@ -226,8 +228,8 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       repository.startIssuingTokens(service1, feature1).futureValue
 
       findAll().futureValue must contain theSameElementsAs List(
-        AllowListMetadata(service1, feature1, 0, true, fixedInstant, clock.instant()),
-        AllowListMetadata(service1, feature2, 0, false, fixedInstant, fixedInstant),
+        entry1.copy(canIssueTokens = true, lastUpdated = clock.instant()),
+        entry2
       )
     }
 
@@ -264,10 +266,10 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       result3 mustEqual UpdateResultResult.UpdateSuccessful
 
       findAll().futureValue must contain theSameElementsAs List(
-        AllowListMetadata(service1, feature1, 8, true, fixedInstant, time2),
-        AllowListMetadata(service1, feature2, 0, true, fixedInstant, fixedInstant),
-        AllowListMetadata(service2, feature1, 10, true, fixedInstant, fixedInstant),
-        AllowListMetadata(service2, feature2, 9, true, fixedInstant, time3),
+        entry1.copy(tokenCount = 8, lastUpdated = time2),
+        entry2,
+        entry3,
+        entry4.copy(tokenCount = 9, lastUpdated = time3),
       )
     }
 
@@ -283,8 +285,8 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       result1 mustEqual UpdateResultResult.NoOpUpdateResult
 
       findAll().futureValue must contain theSameElementsAs List(
-        AllowListMetadata(service1, feature1, 0, true, fixedInstant, fixedInstant),
-        AllowListMetadata(service1, feature2, 10, true, fixedInstant, fixedInstant)
+        entry1,
+        entry2
       )
     }
 
@@ -303,8 +305,8 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       result3 mustEqual UpdateResultResult.UpdateSuccessful
 
       findAll().futureValue must contain theSameElementsAs List(
-        AllowListMetadata(service1, feature1, 10, false, fixedInstant, fixedInstant),
-        AllowListMetadata(service1, feature2, 9, true, fixedInstant, clock.instant()),
+        entry1,
+        entry2.copy(tokenCount = 9, lastUpdated = clock.instant())
       )
     }
 
@@ -333,12 +335,15 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
       val result3 = repository.setTokens(service2, feature1, 0).futureValue
       result3 mustEqual UpdateResultResult.UpdateSuccessful
+      
+      val result4 = repository.setTokens(service2, feature2, 10).futureValue
+      result4 mustEqual UpdateResultResult.UpdateSuccessful
 
       findAll().futureValue must contain theSameElementsAs List(
-        AllowListMetadata(service1, feature1, 5, true, fixedInstant, clock.instant()),
-        AllowListMetadata(service1, feature2, 100, true, fixedInstant, clock.instant()),
-        AllowListMetadata(service2, feature1, 0, true, fixedInstant, clock.instant()),
-        entry4
+        entry1.copy(tokenCount = 5, lastUpdated = clock.instant()),
+        entry2.copy(tokenCount = 100, lastUpdated = clock.instant()),
+        entry3.copy(tokenCount = 0, lastUpdated = clock.instant()),
+        entry4.copy(lastUpdated = clock.instant()),
       )
     }
 

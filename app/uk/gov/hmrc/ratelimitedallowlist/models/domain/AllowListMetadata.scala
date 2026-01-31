@@ -24,4 +24,12 @@ import java.time.Instant
 case class AllowListMetadata(service: String, feature: String, tokenCount: Int, canIssueTokens: Boolean, created: Instant, lastUpdated: Instant)
 
 object AllowListMetadata extends MongoJavatimeFormats.Implicits:
+  object Field: 
+    val service = "service"
+    val feature = "feature"
+    val tokenCount = "tokenCount"
+    val canIssueTokens = "canIssueTokens"
+    val created = "created"
+    val lastUpdated = "lastUpdated"
+    
   val format: OFormat[AllowListMetadata] = Json.format

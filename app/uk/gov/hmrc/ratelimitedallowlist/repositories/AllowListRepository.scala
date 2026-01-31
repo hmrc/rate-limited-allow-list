@@ -19,6 +19,7 @@ package uk.gov.hmrc.ratelimitedallowlist.repositories
 import com.mongodb.MongoException
 import uk.gov.hmrc.ratelimitedallowlist.models.Done
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListEntry, Feature, Service}
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.AllowListEntry.Field
 import org.mongodb.scala.model.*
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
@@ -48,15 +49,15 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
     domainFormat = AllowListEntry.format,
     indexes = Seq(
       IndexModel(
-        Indexes.ascending("created"),
+        Indexes.ascending(Field.created),
         IndexOptions()
-          .name("createdIdx")
+          .name(s"${Field.created}-idx")
           .expireAfter(config.allowListTtlInDays, TimeUnit.DAYS)
       ),
       IndexModel(
-        Indexes.ascending("service", "feature", "hashedValue"),
+        Indexes.ascending(Field.service, Field.feature, Field.hashedValue),
         IndexOptions()
-          .name("serviceListHashedValueIdx")
+          .name(s"${Field.service}-${Field.feature}-${Field.hashedValue}-idx")
           .unique(true)
       )
     )
@@ -77,25 +78,25 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
   def clear(service: Service, feature: Feature): Future[Done] =
     collection
       .deleteMany(Filters.and(
-        Filters.equal("service", service.value),
-        Filters.equal("feature", feature.value)
+        Filters.equal(Field.service, service.value),
+        Filters.equal(Field.feature, feature.value)
       )).toFuture()
       .map(_ => Done)
 
   def check(service: Service, feature: Feature, value: String): Future[Boolean] =
     collection
       .find(Filters.and(
-        Filters.equal("service", service.value),
-        Filters.equal("feature", feature.value),
-        Filters.equal("hashedValue", oneWayHash(value))
+        Filters.equal(Field.service, service.value),
+        Filters.equal(Field.feature, feature.value),
+        Filters.equal(Field.hashedValue, oneWayHash(value))
       ))
       .toFuture()
       .map(_.nonEmpty)
 
   def count(service: Service, feature: Feature): Future[Long] =
     collection.countDocuments(Filters.and(
-      Filters.equal("service", service.value),
-      Filters.equal("feature", feature.value)
+      Filters.equal(Field.service, service.value),
+      Filters.equal(Field.feature, feature.value)
     )).toFuture()
 }
 

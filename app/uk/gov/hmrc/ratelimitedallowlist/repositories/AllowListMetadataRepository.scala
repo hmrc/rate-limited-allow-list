@@ -25,6 +25,8 @@ import play.api.libs.json.OFormat
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.*
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.AllowListMetadata.Field
+
 
 import java.time.Clock
 import java.util.concurrent.TimeUnit
@@ -54,15 +56,15 @@ class AllowListMetadataRepositoryImpl @Inject()(
     domainFormat = AllowListMetadata.format,
     indexes = Seq(
       IndexModel(
-        Indexes.ascending("created"),
+        Indexes.ascending(Field.created),
         IndexOptions()
-          .name("createdIdx")
+          .name(s"${Field.created}-idx")
           .expireAfter(config.allowListTtlInDays, TimeUnit.DAYS)
       ),
       IndexModel(
-        Indexes.ascending("service", "feature"),
+        Indexes.ascending(Field.service, Field.feature),
         IndexOptions()
-          .name("serviceListHashedValueIdx")
+          .name(s"${Field.service}-${Field.feature}-idx")
           .unique(true)
       )
     )
@@ -82,8 +84,8 @@ class AllowListMetadataRepositoryImpl @Inject()(
   def get(service: Service, feature: Feature): Future[Option[AllowListMetadata]] =
     collection.find(
       Filters.and(
-        Filters.equal("service", service.value),
-        Filters.equal("feature", feature.value)
+        Filters.equal(Field.service, service.value),
+        Filters.equal(Field.feature, feature.value)
       )
     ).toFuture()
       .map(_.headOption)
@@ -92,8 +94,8 @@ class AllowListMetadataRepositoryImpl @Inject()(
     collection
       .deleteMany(
         Filters.and(
-          Filters.equal("service", service.value),
-          Filters.equal("feature", feature.value)
+          Filters.equal(Field.service, service.value),
+          Filters.equal(Field.feature, feature.value)
         )
       ).toFuture()
       .map {
@@ -107,12 +109,12 @@ class AllowListMetadataRepositoryImpl @Inject()(
       collection
         .updateOne(
           Filters.and(
-            Filters.equal("service", service.value),
-            Filters.equal("feature", feature.value)
+            Filters.equal(Field.service, service.value),
+            Filters.equal(Field.feature, feature.value)
           ),
           Updates.combine(
-            Updates.inc("tokenCount", incrementCount),
-            Updates.set("lastUpdated", clock.instant()),
+            Updates.inc(Field.tokenCount, incrementCount),
+            Updates.set(Field.lastUpdated, clock.instant()),
           )
         )
         .toFuture()
@@ -131,12 +133,12 @@ class AllowListMetadataRepositoryImpl @Inject()(
     collection
       .updateOne(
         Filters.and(
-          Filters.equal("service", service.value),
-          Filters.equal("feature", feature.value)
+          Filters.equal(Field.service, service.value),
+          Filters.equal(Field.feature, feature.value)
         ),
         Updates.combine(
-          Updates.set("canIssueTokens", false),
-          Updates.set("lastUpdated", clock.instant()),
+          Updates.set(Field.canIssueTokens, false),
+          Updates.set(Field.lastUpdated, clock.instant()),
         )
       )
       .toFuture()
@@ -150,12 +152,12 @@ class AllowListMetadataRepositoryImpl @Inject()(
     collection
       .updateOne(
         Filters.and(
-          Filters.equal("service", service.value),
-          Filters.equal("feature", feature.value)
+          Filters.equal(Field.service, service.value),
+          Filters.equal(Field.feature, feature.value)
         ),
         Updates.combine(
-          Updates.set("canIssueTokens", true),
-          Updates.set("lastUpdated", clock.instant()),
+          Updates.set(Field.canIssueTokens, true),
+          Updates.set(Field.lastUpdated, clock.instant()),
         )
       )
       .toFuture()
@@ -169,14 +171,14 @@ class AllowListMetadataRepositoryImpl @Inject()(
     collection
       .updateOne(
         Filters.and(
-          Filters.equal("service", service.value),
-          Filters.equal("feature", feature.value),
-          Filters.equal("canIssueTokens", true),
-          Filters.gte("tokenCount", 1),
+          Filters.equal(Field.service, service.value),
+          Filters.equal(Field.feature, feature.value),
+          Filters.equal(Field.canIssueTokens, true),
+          Filters.gte(Field.tokenCount, 1),
         ),
         Updates.combine(
-          Updates.inc("tokenCount", -1),
-          Updates.set("lastUpdated", clock.instant()),
+          Updates.inc(Field.tokenCount, -1),
+          Updates.set(Field.lastUpdated, clock.instant()),
         )
       )
       .toFuture()
@@ -190,12 +192,12 @@ class AllowListMetadataRepositoryImpl @Inject()(
     collection
       .updateOne(
         Filters.and(
-          Filters.equal("service", service.value),
-          Filters.equal("feature", feature.value)
+          Filters.equal(Field.service, service.value),
+          Filters.equal(Field.feature, feature.value)
         ),
         Updates.combine(
-          Updates.set("tokenCount", count),
-          Updates.set("lastUpdated", clock.instant()),
+          Updates.set(Field.tokenCount, count),
+          Updates.set(Field.lastUpdated, clock.instant()),
         )
       )
       .toFuture()

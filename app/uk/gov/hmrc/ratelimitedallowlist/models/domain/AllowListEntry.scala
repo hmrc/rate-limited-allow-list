@@ -24,4 +24,10 @@ import java.time.Instant
 case class AllowListEntry(service: String, feature: String, hashedValue: String, created: Instant)
 
 object AllowListEntry extends MongoJavatimeFormats.Implicits:
+  object Field:
+    val service = "service"
+    val feature = "feature"
+    val hashedValue = "hashedValue"
+    val created = "created"
+
   val format: OFormat[AllowListEntry] = Json.format

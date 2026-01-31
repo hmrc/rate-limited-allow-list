@@ -54,6 +54,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
     collectionName = "allow-list-metadata",
     mongoComponent = mongoComponent,
     domainFormat = AllowListMetadata.format,
+    replaceIndexes = config.replaceIndexes,
     indexes = Seq(
       IndexModel(
         Indexes.ascending(Field.created),

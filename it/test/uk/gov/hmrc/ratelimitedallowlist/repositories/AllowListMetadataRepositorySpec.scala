@@ -33,7 +33,7 @@ import scala.concurrent.Future
 
 class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMongoRepositorySupport[AllowListMetadata], OptionValues, ScalaFutures {
 
-  private val config = AllowListRepositoryConfig(1)
+  private val config = AllowListRepositoryConfig(1, true)
   private val fixedInstant = Instant.now.truncatedTo(ChronoUnit.MILLIS)
   private val clock = TimeTravelClock(fixedInstant)
 

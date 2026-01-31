@@ -20,12 +20,13 @@ import play.api.Configuration
 
 import javax.inject.{Inject, Provider, Singleton}
 
-case class AllowListRepositoryConfig(allowListTtlInDays: Long)
+case class AllowListRepositoryConfig(allowListTtlInDays: Long, replaceIndexes: Boolean)
 
 @Singleton
 class AllowListRepositoryConfigProvider @Inject() (configuration: Configuration) extends Provider[AllowListRepositoryConfig]:
   override def get(): AllowListRepositoryConfig =
     AllowListRepositoryConfig(
-      configuration.get[Long]("mongodb.collections.allow-list.allowListTtlInDays")
+      configuration.get[Long]("mongodb.collections.allow-list.allowListTtlInDays"),
+      configuration.get[Boolean]("mongodb.collections.allow-list.replaceIndexes")
     )
 

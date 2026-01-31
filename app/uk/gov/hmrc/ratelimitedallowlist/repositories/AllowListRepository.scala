@@ -47,6 +47,7 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
     collectionName = "allow-list",
     mongoComponent = mongoComponent,
     domainFormat = AllowListEntry.format,
+    replaceIndexes = config.replaceIndexes,
     indexes = Seq(
       IndexModel(
         Indexes.ascending(Field.created),

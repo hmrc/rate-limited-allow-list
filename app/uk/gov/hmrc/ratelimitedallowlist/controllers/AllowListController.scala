@@ -31,13 +31,13 @@ import scala.concurrent.ExecutionContext
 @Singleton()
 class AllowListController @Inject() (
   cc: ControllerComponents,
-  service: AllowListService
+  allowList: AllowListService
 )(using ExecutionContext) extends BackendController(cc), Logging:
 
-  def checkAllowList(serviceName: Service, feature: Feature): Action[CheckRequest] =
+  def checkAllowList(service: Service, feature: Feature): Action[CheckRequest] =
     Action.async(parse.json[CheckRequest]):
       request =>
-        Mdc.putMdc(Map("service" -> serviceName.value, "feature" -> feature.value,"api-op" -> "check"))
-        service.check(serviceName, feature, request.body.identifier).map:
+        Mdc.putMdc(Map("service" -> service.value, "feature" -> feature.value,"api-op" -> "check"))
+        allowList.check(service, feature, request.body.identifier).map:
           checkResult =>
              Ok(Json.toJsObject(CheckResponse(included = checkResult)))

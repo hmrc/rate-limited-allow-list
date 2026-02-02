@@ -116,7 +116,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
             Filters.equal(Field.feature, feature.value)
           ),
           Updates.combine(
-            Updates.inc(Field.tokenCount, incrementCount),
+            Updates.inc(Field.tokens, incrementCount),
             Updates.set(Field.lastUpdated, clock.instant()),
           )
         )
@@ -177,10 +177,10 @@ class AllowListMetadataRepositoryImpl @Inject()(
           Filters.equal(Field.service, service.value),
           Filters.equal(Field.feature, feature.value),
           Filters.equal(Field.canIssueTokens, true),
-          Filters.gte(Field.tokenCount, 1),
+          Filters.gte(Field.tokens, 1),
         ),
         Updates.combine(
-          Updates.inc(Field.tokenCount, -1),
+          Updates.inc(Field.tokens, -1),
           Updates.set(Field.lastUpdated, clock.instant()),
         )
       )
@@ -199,7 +199,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
           Filters.equal(Field.feature, feature.value)
         ),
         Updates.combine(
-          Updates.set(Field.tokenCount, count),
+          Updates.set(Field.tokens, count),
           Updates.set(Field.lastUpdated, clock.instant()),
         )
       )
@@ -229,7 +229,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
                   Filters.notEqual(Field.tokenConfigUpdateId, id)
                 ),
                 Updates.combine(
-                  Updates.set(Field.tokenCount, tokens),
+                  Updates.set(Field.tokens, tokens),
                   Updates.set(Field.lastUpdated, clock.instant()),
                   Updates.set(Field.tokenConfigUpdateId, id)
                 )

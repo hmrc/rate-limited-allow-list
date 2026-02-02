@@ -163,10 +163,10 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       result2 mustEqual UpdateResultResult.UpdateSuccessful
 
       findAll().futureValue must contain theSameElementsAs List(
-        entry1.copy(tokenCount = 20, lastUpdated = time1),
+        entry1.copy(tokens = 20, lastUpdated = time1),
         entry2,
         entry3,
-        entry4.copy(tokenCount = 199, lastUpdated = time2)
+        entry4.copy(tokens = 199, lastUpdated = time2)
       )
     }
 
@@ -266,10 +266,10 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       result3 mustEqual UpdateResultResult.UpdateSuccessful
 
       findAll().futureValue must contain theSameElementsAs List(
-        entry1.copy(tokenCount = 8, lastUpdated = time2),
+        entry1.copy(tokens = 8, lastUpdated = time2),
         entry2,
         entry3,
-        entry4.copy(tokenCount = 9, lastUpdated = time3),
+        entry4.copy(tokens = 9, lastUpdated = time3),
       )
     }
 
@@ -306,7 +306,7 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
       findAll().futureValue must contain theSameElementsAs List(
         entry1,
-        entry2.copy(tokenCount = 9, lastUpdated = clock.instant())
+        entry2.copy(tokens = 9, lastUpdated = clock.instant())
       )
     }
 
@@ -340,9 +340,9 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       result4 mustEqual UpdateResultResult.UpdateSuccessful
 
       findAll().futureValue must contain theSameElementsAs List(
-        entry1.copy(tokenCount = 5, lastUpdated = clock.instant()),
-        entry2.copy(tokenCount = 100, lastUpdated = clock.instant()),
-        entry3.copy(tokenCount = 0, lastUpdated = clock.instant()),
+        entry1.copy(tokens = 5, lastUpdated = clock.instant()),
+        entry2.copy(tokens = 100, lastUpdated = clock.instant()),
+        entry3.copy(tokens = 0, lastUpdated = clock.instant()),
         entry4.copy(lastUpdated = clock.instant()),
       )
     }
@@ -378,7 +378,7 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
         AllowListMetadataRepositoryImpl(mongoComponent, overrideConfig2, clock).initCompleted.futureValue
 
         findAll().futureValue must contain theSameElementsAs List(
-          entry1.copy(tokenCount = 100, tokenConfigUpdateId = updatedConfigId, lastUpdated = clock.instant())
+          entry1.copy(tokens = 100, tokenConfigUpdateId = updatedConfigId, lastUpdated = clock.instant())
         )
       }
 
@@ -405,8 +405,8 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
         AllowListMetadataRepositoryImpl(mongoComponent, overrideConfig, clock).initCompleted.futureValue
 
         findAll().futureValue must contain theSameElementsAs List(
-          entry1.copy(tokenCount = 100, tokenConfigUpdateId = updatedConfigId, lastUpdated = clock.instant()),
-          entry2.copy(tokenCount = 0, tokenConfigUpdateId = updatedConfigId, lastUpdated = clock.instant())
+          entry1.copy(tokens = 100, tokenConfigUpdateId = updatedConfigId, lastUpdated = clock.instant()),
+          entry2.copy(tokens = 0, tokenConfigUpdateId = updatedConfigId, lastUpdated = clock.instant())
         )
       }
     }

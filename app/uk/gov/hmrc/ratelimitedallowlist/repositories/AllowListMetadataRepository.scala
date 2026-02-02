@@ -17,16 +17,14 @@
 package uk.gov.hmrc.ratelimitedallowlist.repositories
 
 import com.mongodb.MongoException
-import uk.gov.hmrc.ratelimitedallowlist.models.Done
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
 import org.mongodb.scala.model.*
-import play.api.Logging
 import play.api.libs.json.OFormat
+import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.*
+import uk.gov.hmrc.ratelimitedallowlist.models.Done
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.AllowListMetadata.Field
-
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.*
 
 import java.time.Clock
 import java.util.concurrent.TimeUnit
@@ -47,20 +45,20 @@ trait AllowListMetadataRepository {
 
 @Singleton
 class AllowListMetadataRepositoryImpl @Inject()(
-  mongoComponent: MongoComponent,
-  config: AllowListRepositoryConfig,
-  clock: Clock
+    mongoComponent: MongoComponent,
+    config: Configuration,
+    clock: Clock
 )(using ExecutionContext) extends PlayMongoRepository[AllowListMetadata](
     collectionName = "allow-list-metadata",
     mongoComponent = mongoComponent,
     domainFormat = AllowListMetadata.format,
-    replaceIndexes = config.replaceIndexes,
+    replaceIndexes = config.get[Boolean]("mongodb.collections.allow-list.replaceIndexes"),
     indexes = Seq(
       IndexModel(
         Indexes.ascending(Field.created),
         IndexOptions()
           .name(s"${Field.created}-idx")
-          .expireAfter(config.allowListTtlInDays, TimeUnit.DAYS)
+          .expireAfter(config.get[Long]("mongodb.collections.allow-list.allowListTtlInDays"), TimeUnit.DAYS)
       ),
       IndexModel(
         Indexes.ascending(Field.service, Field.feature),
@@ -70,9 +68,13 @@ class AllowListMetadataRepositoryImpl @Inject()(
       )
     )
   ) with AllowListMetadataRepository with Logging {
-  
+
+  val allowTokenUpdate: Boolean = config.get[Boolean]("features.allow-config-token-updates")
+
+  val initCompleted = onInit()
+
   def create(service: Service, feature: Feature): Future[Done] = {
-    val entry = AllowListMetadata(service.value, feature.value, 0, false, clock.instant(), clock.instant())
+    val entry = AllowListMetadata(service.value, feature.value, 0, false, clock.instant(), clock.instant(), "")
     collection
       .insertOne(entry)
       .toFuture()
@@ -207,4 +209,44 @@ class AllowListMetadataRepositoryImpl @Inject()(
           if (result.getModifiedCount == 0) then UpdateResultResult.NoOpUpdateResult
           else UpdateResultResult.UpdateSuccessful
       }
+
+
+  private def onInit(): Future[Done] = {
+    if !allowTokenUpdate then
+      logger.info("Token driven config updates are disabled")
+      Future.successful(Done)
+    else {
+      val updates = config.get[Seq[AllowListMetadataConfigUpdate]]("mongodb.collections.allow-list.token-updates")
+
+      Future.sequence(
+        updates.map {
+          case AllowListMetadataConfigUpdate(service, feature, tokens, id) =>
+            collection
+              .updateOne(
+                Filters.and(
+                  Filters.equal(Field.service, service),
+                  Filters.equal(Field.feature, feature),
+                  Filters.notEqual(Field.tokenConfigUpdateId, id)
+                ),
+                Updates.combine(
+                  Updates.set(Field.tokenCount, tokens),
+                  Updates.set(Field.lastUpdated, clock.instant()),
+                  Updates.set(Field.tokenConfigUpdateId, id)
+                )
+              )
+              .toFuture()
+              .map {
+                result =>
+                  if (result.getMatchedCount == 0 || result.getModifiedCount == 0) then {
+                    logger.info("Did not update token count")
+                    Done
+                  } else {
+                    logger.info(s"Tokens updated for service $service and $service to tokens=$tokens and update id $id")
+                    Done
+                  }
+              }
+        }
+      ).map(_ => Done)
+    }
+  }
 }

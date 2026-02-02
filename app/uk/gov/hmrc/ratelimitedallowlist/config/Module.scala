@@ -19,7 +19,7 @@ package uk.gov.hmrc.ratelimitedallowlist.config
 import play.api.inject.{Binding, Module as AppModule}
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.ratelimitedallowlist.crypto.{OneWayHash, ShaOneWayHash, OneWayHashProvider}
-import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListRepository, AllowListRepositoryConfig, AllowListRepositoryConfigProvider, AllowListRepositoryImpl}
+import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListRepository, AllowListRepositoryImpl}
 import uk.gov.hmrc.ratelimitedallowlist.services.{AllowListService, AllowListServiceImpl}
 import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListMetadataRepository, AllowListMetadataRepositoryImpl}
 
@@ -32,7 +32,6 @@ class Module extends AppModule:
   ): Seq[Binding[_]] =
     List(
       bind[Clock].toInstance(Clock.systemDefaultZone),
-      bind[AllowListRepositoryConfig].toProvider[AllowListRepositoryConfigProvider],
       bind[ShaOneWayHash].toProvider[OneWayHashProvider],
       bind[OneWayHash].to[ShaOneWayHash],
       bind[AllowListRepository].to[AllowListRepositoryImpl],

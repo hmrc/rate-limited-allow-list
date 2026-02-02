@@ -21,7 +21,13 @@ import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.time.Instant
 
-case class AllowListMetadata(service: String, feature: String, tokenCount: Int, canIssueTokens: Boolean, created: Instant, lastUpdated: Instant)
+case class AllowListMetadata(service: String,
+                             feature: String,
+                             tokenCount: Int,
+                             canIssueTokens: Boolean,
+                             created: Instant,
+                             lastUpdated: Instant,
+                             tokenConfigUpdateId: String)
 
 object AllowListMetadata extends MongoJavatimeFormats.Implicits:
   object Field: 
@@ -31,5 +37,6 @@ object AllowListMetadata extends MongoJavatimeFormats.Implicits:
     val canIssueTokens = "canIssueTokens"
     val created = "created"
     val lastUpdated = "lastUpdated"
+    val tokenConfigUpdateId = "tokenConfigUpdateId"
     
   val format: OFormat[AllowListMetadata] = Json.format

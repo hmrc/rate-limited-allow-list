@@ -21,6 +21,7 @@ import uk.gov.hmrc.ratelimitedallowlist.models.Done
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListEntry, Feature, Service}
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.AllowListEntry.Field
 import org.mongodb.scala.model.*
+import play.api.Configuration
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.ratelimitedallowlist.crypto.OneWayHash
@@ -39,7 +40,7 @@ trait AllowListRepository {
 
 @Singleton
 class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
-                                        config: AllowListRepositoryConfig,
+                                        config: Configuration,
                                         oneWayHash: OneWayHash,
                                         clock: Clock
                                    )(using ExecutionContext)
@@ -47,13 +48,13 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
     collectionName = "allow-list",
     mongoComponent = mongoComponent,
     domainFormat = AllowListEntry.format,
-    replaceIndexes = config.replaceIndexes,
+    replaceIndexes = config.get[Boolean]("mongodb.collections.allow-list.replaceIndexes"),
     indexes = Seq(
       IndexModel(
         Indexes.ascending(Field.created),
         IndexOptions()
           .name(s"${Field.created}-idx")
-          .expireAfter(config.allowListTtlInDays, TimeUnit.DAYS)
+          .expireAfter(config.get[Long]("mongodb.collections.allow-list.allowListTtlInDays"), TimeUnit.DAYS)
       ),
       IndexModel(
         Indexes.ascending(Field.service, Field.feature, Field.hashedValue),

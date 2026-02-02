@@ -20,20 +20,20 @@ import org.scalatest.OptionValues
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.freespec.AnyFreeSpecLike
 import org.scalatest.matchers.must.Matchers
+import play.api.{Configuration, Environment}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.ratelimitedallowlist.models.Done
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListMetadata, Feature, Service}
-import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResultResult.NoOpUpdateResult
 import uk.gov.hmrc.ratelimitedallowlist.utils.TimeTravelClock
 
 import java.time.temporal.ChronoUnit
-import java.time.{Clock, Instant, ZoneId}
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMongoRepositorySupport[AllowListMetadata], OptionValues, ScalaFutures {
 
-  private val config = AllowListRepositoryConfig(1, true)
+  private val config = Configuration.load(Environment.simple())
   private val fixedInstant = Instant.now.truncatedTo(ChronoUnit.MILLIS)
   private val clock = TimeTravelClock(fixedInstant)
 
@@ -62,10 +62,10 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       val insertedRecord = findAll().futureValue
 
       insertedRecord must contain theSameElementsAs List(
-        AllowListMetadata(service1, feature1, 0, false, fixedInstant, fixedInstant),
-        AllowListMetadata(service1, feature2, 0, false, fixedInstant, fixedInstant),
-        AllowListMetadata(service2, feature1, 0, false, fixedInstant, fixedInstant),
-        AllowListMetadata(service2, feature2, 0, false, fixedInstant, fixedInstant),
+        AllowListMetadata(service1, feature1, 0, false, fixedInstant, fixedInstant, ""),
+        AllowListMetadata(service1, feature2, 0, false, fixedInstant, fixedInstant, ""),
+        AllowListMetadata(service2, feature1, 0, false, fixedInstant, fixedInstant, ""),
+        AllowListMetadata(service2, feature2, 0, false, fixedInstant, fixedInstant, ""),
       )
     }
 
@@ -83,18 +83,18 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       val result = findAll().futureValue
 
       result must contain theSameElementsAs Seq(
-        AllowListMetadata(service1, feature1, 0, false, fixedInstant, fixedInstant),
-        AllowListMetadata(service1, feature2, 0, false, fixedInstant, fixedInstant)
+        AllowListMetadata(service1, feature1, 0, false, fixedInstant, fixedInstant, ""),
+        AllowListMetadata(service1, feature2, 0, false, fixedInstant, fixedInstant, "")
       )
     }
   }
 
   ".get" - {
     "returns the entry with the matching service and feature" in {
-      val entry1 = AllowListMetadata(service1, feature1, 0, true, fixedInstant, fixedInstant)
-      val entry2 = AllowListMetadata(service1, feature2, 0, true, fixedInstant, fixedInstant)
-      val entry3 = AllowListMetadata(service2, feature1, 0, true, fixedInstant, fixedInstant)
-      val entry4 = AllowListMetadata(service2, feature2, 0, true, fixedInstant, fixedInstant)
+      val entry1 = AllowListMetadata(service1, feature1, 0, true, fixedInstant, fixedInstant, "")
+      val entry2 = AllowListMetadata(service1, feature2, 0, true, fixedInstant, fixedInstant, "")
+      val entry3 = AllowListMetadata(service2, feature1, 0, true, fixedInstant, fixedInstant, "")
+      val entry4 = AllowListMetadata(service2, feature2, 0, true, fixedInstant, fixedInstant, "")
 
       Future.sequence(List(entry1, entry2, entry3, entry4).map(insert)).futureValue
 
@@ -102,7 +102,7 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
     }
 
     "returns None when there are no matching service and feature" in {
-      val entry1 = AllowListMetadata(service1, feature1, 0, true, fixedInstant, fixedInstant)
+      val entry1 = AllowListMetadata(service1, feature1, 0, true, fixedInstant, fixedInstant, "")
 
       insert(entry1).futureValue
 
@@ -113,10 +113,10 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
   ".clear" - {
     "must remove a matching item" in {
-      val entry1 = AllowListMetadata(service1, feature1, 0, true, fixedInstant, fixedInstant)
-      val entry2 = AllowListMetadata(service1, feature2, 0, true, fixedInstant, fixedInstant)
-      val entry3 = AllowListMetadata(service2, feature1, 0, true, fixedInstant, fixedInstant)
-      val entry4 = AllowListMetadata(service2, feature2, 0, true, fixedInstant, fixedInstant)
+      val entry1 = AllowListMetadata(service1, feature1, 0, true, fixedInstant, fixedInstant, "")
+      val entry2 = AllowListMetadata(service1, feature2, 0, true, fixedInstant, fixedInstant, "")
+      val entry3 = AllowListMetadata(service2, feature1, 0, true, fixedInstant, fixedInstant, "")
+      val entry4 = AllowListMetadata(service2, feature2, 0, true, fixedInstant, fixedInstant, "")
 
       Future.sequence(List(entry1, entry2, entry3, entry4).map(insert)).futureValue
 
@@ -130,7 +130,7 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
     }
 
     "will successful return a noop result if there is no item to delete" in {
-      val entry1 = AllowListMetadata(service1, feature1, 0, true, fixedInstant, fixedInstant)
+      val entry1 = AllowListMetadata(service1, feature1, 0, true, fixedInstant, fixedInstant, "")
       insert(entry1).futureValue
 
       val result = repository.clear(service1, feature2).futureValue
@@ -143,10 +143,10 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
   ".addTokens" - {
     "succeeds when the increment value is positive and updates the updated field" in {
-      val entry1 = AllowListMetadata(service1, feature1, 10, false, fixedInstant, fixedInstant)
-      val entry2 = AllowListMetadata(service1, feature2, 10, true, fixedInstant, fixedInstant)
-      val entry3 = AllowListMetadata(service2, feature1, 10, true, fixedInstant, fixedInstant)
-      val entry4 = AllowListMetadata(service2, feature2, 10, true, fixedInstant, fixedInstant)
+      val entry1 = AllowListMetadata(service1, feature1, 10, false, fixedInstant, fixedInstant, "")
+      val entry2 = AllowListMetadata(service1, feature2, 10, true, fixedInstant, fixedInstant, "")
+      val entry3 = AllowListMetadata(service2, feature1, 10, true, fixedInstant, fixedInstant, "")
+      val entry4 = AllowListMetadata(service2, feature2, 10, true, fixedInstant, fixedInstant, "")
 
       Future.sequence(List(entry1, entry2, entry3, entry4).map(insert)).futureValue
 
@@ -176,7 +176,7 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
     }
 
     "returns a failed future with IllegalArgumentException when the increment value is invalid" in {
-      val entry1 = AllowListMetadata(service1, feature1, 10, true, fixedInstant, fixedInstant)
+      val entry1 = AllowListMetadata(service1, feature1, 10, true, fixedInstant, fixedInstant, "")
       insert(entry1).futureValue
 
       val result1 = repository.addTokens(service1, feature1, -1).failed.futureValue
@@ -191,8 +191,8 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
   ".stopIssuingTokens" - {
     "set the canIssueTokens field to false" in {
-      val entry1 = AllowListMetadata(service1, feature1, 0, true, fixedInstant, fixedInstant)
-      val entry2 = AllowListMetadata(service1, feature2, 0, true, fixedInstant, fixedInstant)
+      val entry1 = AllowListMetadata(service1, feature1, 0, true, fixedInstant, fixedInstant, "")
+      val entry2 = AllowListMetadata(service1, feature2, 0, true, fixedInstant, fixedInstant, "")
 
       Future.sequence(List(entry1, entry2).map(insert)).futureValue
 
@@ -216,8 +216,8 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
   ".startIssuingTokens" - {
     "set the canIssueTokens field to false" in {
-      val entry1 = AllowListMetadata(service1, feature1, 0, false, fixedInstant, fixedInstant)
-      val entry2 = AllowListMetadata(service1, feature2, 0, false, fixedInstant, fixedInstant)
+      val entry1 = AllowListMetadata(service1, feature1, 0, false, fixedInstant, fixedInstant, "")
+      val entry2 = AllowListMetadata(service1, feature2, 0, false, fixedInstant, fixedInstant, "")
 
       Future.sequence(List(entry1, entry2).map(insert)).futureValue
 
@@ -241,10 +241,10 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
   ".issueToken" - {
     "returns true and decrements the token count when the service has a non-zero positive number of tokens" in {
-      val entry1 = AllowListMetadata(service1, feature1, 10, true, fixedInstant, fixedInstant)
-      val entry2 = AllowListMetadata(service1, feature2, 0, true, fixedInstant, fixedInstant)
-      val entry3 = AllowListMetadata(service2, feature1, 10, true, fixedInstant, fixedInstant)
-      val entry4 = AllowListMetadata(service2, feature2, 10, true, fixedInstant, fixedInstant)
+      val entry1 = AllowListMetadata(service1, feature1, 10, true, fixedInstant, fixedInstant, "")
+      val entry2 = AllowListMetadata(service1, feature2, 0, true, fixedInstant, fixedInstant, "")
+      val entry3 = AllowListMetadata(service2, feature1, 10, true, fixedInstant, fixedInstant, "")
+      val entry4 = AllowListMetadata(service2, feature2, 10, true, fixedInstant, fixedInstant, "")
 
       Future.sequence(List(entry1, entry2, entry3, entry4).map(insert)).futureValue
 
@@ -274,8 +274,8 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
     }
 
     "returns a noOp result and does not change the token count when the service has zero tokens" in {
-      val entry1 = AllowListMetadata(service1, feature1, 0, true, fixedInstant, fixedInstant)
-      val entry2 = AllowListMetadata(service1, feature2, 10, true, fixedInstant, fixedInstant)
+      val entry1 = AllowListMetadata(service1, feature1, 0, true, fixedInstant, fixedInstant, "")
+      val entry2 = AllowListMetadata(service1, feature2, 10, true, fixedInstant, fixedInstant, "")
 
       Future.sequence(List(entry1, entry2).map(insert)).futureValue
 
@@ -291,8 +291,8 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
     }
 
     "returns false and does not change the token count for records where the canIssueTokens field is false" in {
-      val entry1 = AllowListMetadata(service1, feature1, 10, false, fixedInstant, fixedInstant)
-      val entry2 = AllowListMetadata(service1, feature2, 10, true, fixedInstant, fixedInstant)
+      val entry1 = AllowListMetadata(service1, feature1, 10, false, fixedInstant, fixedInstant, "")
+      val entry2 = AllowListMetadata(service1, feature2, 10, true, fixedInstant, fixedInstant, "")
 
       Future.sequence(List(entry1, entry2).map(insert)).futureValue
 
@@ -318,10 +318,10 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
   ".setTokens" - {
     "returns true and decrements the token count when the service has a non-zero positive number of tokens" in {
-      val entry1 = AllowListMetadata(service1, feature1, 10, true, fixedInstant, fixedInstant)
-      val entry2 = AllowListMetadata(service1, feature2, 0, true, fixedInstant, fixedInstant)
-      val entry3 = AllowListMetadata(service2, feature1, 10, true, fixedInstant, fixedInstant)
-      val entry4 = AllowListMetadata(service2, feature2, 10, true, fixedInstant, fixedInstant)
+      val entry1 = AllowListMetadata(service1, feature1, 10, true, fixedInstant, fixedInstant, "")
+      val entry2 = AllowListMetadata(service1, feature2, 0, true, fixedInstant, fixedInstant, "")
+      val entry3 = AllowListMetadata(service2, feature1, 10, true, fixedInstant, fixedInstant, "")
+      val entry4 = AllowListMetadata(service2, feature2, 10, true, fixedInstant, fixedInstant, "")
 
       Future.sequence(List(entry1, entry2, entry3, entry4).map(insert)).futureValue
 
@@ -350,6 +350,87 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
     "returns a noOp result when there is no matching service and feature" in {
       val result = repository.setTokens(service1, feature1, 100).futureValue
       result mustEqual UpdateResultResult.NoOpUpdateResult
+    }
+  }
+
+  "token update via config" - {
+    val updatedConfigId = "updated-config-id"
+
+    val entry1 = AllowListMetadata(service1, feature1, 10, true, fixedInstant, fixedInstant, "")
+    val entry2 = AllowListMetadata(service2, feature2, 10, true, fixedInstant, fixedInstant, "initial-config-id")
+
+    val overrideConfig =
+      Configuration(
+        "mongodb.collections.allow-list.token-updates.0.service" -> service1.value,
+        "mongodb.collections.allow-list.token-updates.0.feature" -> feature1.value,
+        "mongodb.collections.allow-list.token-updates.0.tokens" -> 100,
+        "mongodb.collections.allow-list.token-updates.0.id" -> updatedConfigId,
+      ).withFallback(Configuration.load(Environment.simple()))
+
+    "will update the token count on class initialisation" - {
+      "when the config has not been applied" in {
+        val overrideConfig2 = Configuration("features.allow-config-token-updates" -> true).withFallback(overrideConfig)
+
+        insert(entry1).futureValue
+
+        clock.fastForwardTime(60)
+
+        AllowListMetadataRepositoryImpl(mongoComponent, overrideConfig2, clock).initCompleted.futureValue
+
+        findAll().futureValue must contain theSameElementsAs List(
+          entry1.copy(tokenCount = 100, tokenConfigUpdateId = updatedConfigId, lastUpdated = clock.instant())
+        )
+      }
+
+      "when there are multiple configs that have not been applied" in {
+        val overrideConfig = Configuration(
+          "mongodb.collections.allow-list.token-updates.0.service" -> service1.value,
+          "mongodb.collections.allow-list.token-updates.0.feature" -> feature1.value,
+          "mongodb.collections.allow-list.token-updates.0.tokens" -> 100,
+          "mongodb.collections.allow-list.token-updates.0.id" -> updatedConfigId,
+          "mongodb.collections.allow-list.token-updates.1.service" -> service2.value,
+          "mongodb.collections.allow-list.token-updates.1.feature" -> feature2.value,
+          "mongodb.collections.allow-list.token-updates.1.tokens" -> 0,
+          "mongodb.collections.allow-list.token-updates.1.id" -> updatedConfigId,
+          "features.allow-config-token-updates" -> true
+        ).withFallback(Configuration.load(Environment.simple()))
+
+        Future.sequence(List(entry1, entry2).map(insert)).futureValue
+
+
+        findAll().futureValue must contain theSameElementsAs List(entry1, entry2)
+
+        clock.fastForwardTime(60)
+
+        AllowListMetadataRepositoryImpl(mongoComponent, overrideConfig, clock).initCompleted.futureValue
+
+        findAll().futureValue must contain theSameElementsAs List(
+          entry1.copy(tokenCount = 100, tokenConfigUpdateId = updatedConfigId, lastUpdated = clock.instant()),
+          entry2.copy(tokenCount = 0, tokenConfigUpdateId = updatedConfigId, lastUpdated = clock.instant())
+        )
+      }
+    }
+
+    "will not update the token count" - {
+      "when then config has been applied before" in {
+        insert(entry1).futureValue
+
+        findAll().futureValue.head mustEqual entry1
+
+        AllowListMetadataRepositoryImpl(mongoComponent, overrideConfig, clock).initCompleted.futureValue
+
+        findAll().futureValue.head mustEqual entry1
+      }
+
+      "when config update is disabled" in {
+        insert(entry1).futureValue
+
+        findAll().futureValue.head mustEqual entry1
+
+        AllowListMetadataRepositoryImpl(mongoComponent, overrideConfig, clock).initCompleted.futureValue
+
+        findAll().futureValue.head mustEqual entry1
+      }
     }
   }
 

@@ -74,7 +74,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
   val initCompleted = onInit()
 
   def create(service: Service, feature: Feature): Future[Done] = {
-    val entry = AllowListMetadata(service.value, feature.value, 0, false, clock.instant(), clock.instant(), "")
+    val entry = AllowListMetadata(service.name, feature.name, 0, false, clock.instant(), clock.instant(), "")
     collection
       .insertOne(entry)
       .toFuture()
@@ -87,8 +87,8 @@ class AllowListMetadataRepositoryImpl @Inject()(
   def get(service: Service, feature: Feature): Future[Option[AllowListMetadata]] =
     collection.find(
       Filters.and(
-        Filters.equal(Field.service, service.value),
-        Filters.equal(Field.feature, feature.value)
+        Filters.equal(Field.service, service.name),
+        Filters.equal(Field.feature, feature.name)
       )
     ).toFuture()
       .map(_.headOption)
@@ -97,8 +97,8 @@ class AllowListMetadataRepositoryImpl @Inject()(
     collection
       .deleteMany(
         Filters.and(
-          Filters.equal(Field.service, service.value),
-          Filters.equal(Field.feature, feature.value)
+          Filters.equal(Field.service, service.name),
+          Filters.equal(Field.feature, feature.name)
         )
       ).toFuture()
       .map {
@@ -112,8 +112,8 @@ class AllowListMetadataRepositoryImpl @Inject()(
       collection
         .updateOne(
           Filters.and(
-            Filters.equal(Field.service, service.value),
-            Filters.equal(Field.feature, feature.value)
+            Filters.equal(Field.service, service.name),
+            Filters.equal(Field.feature, feature.name)
           ),
           Updates.combine(
             Updates.inc(Field.tokens, incrementCount),
@@ -136,8 +136,8 @@ class AllowListMetadataRepositoryImpl @Inject()(
     collection
       .updateOne(
         Filters.and(
-          Filters.equal(Field.service, service.value),
-          Filters.equal(Field.feature, feature.value)
+          Filters.equal(Field.service, service.name),
+          Filters.equal(Field.feature, feature.name)
         ),
         Updates.combine(
           Updates.set(Field.canIssueTokens, false),
@@ -155,8 +155,8 @@ class AllowListMetadataRepositoryImpl @Inject()(
     collection
       .updateOne(
         Filters.and(
-          Filters.equal(Field.service, service.value),
-          Filters.equal(Field.feature, feature.value)
+          Filters.equal(Field.service, service.name),
+          Filters.equal(Field.feature, feature.name)
         ),
         Updates.combine(
           Updates.set(Field.canIssueTokens, true),
@@ -174,8 +174,8 @@ class AllowListMetadataRepositoryImpl @Inject()(
     collection
       .updateOne(
         Filters.and(
-          Filters.equal(Field.service, service.value),
-          Filters.equal(Field.feature, feature.value),
+          Filters.equal(Field.service, service.name),
+          Filters.equal(Field.feature, feature.name),
           Filters.equal(Field.canIssueTokens, true),
           Filters.gte(Field.tokens, 1),
         ),
@@ -195,8 +195,8 @@ class AllowListMetadataRepositoryImpl @Inject()(
     collection
       .updateOne(
         Filters.and(
-          Filters.equal(Field.service, service.value),
-          Filters.equal(Field.feature, feature.value)
+          Filters.equal(Field.service, service.name),
+          Filters.equal(Field.feature, feature.name)
         ),
         Updates.combine(
           Updates.set(Field.tokens, count),

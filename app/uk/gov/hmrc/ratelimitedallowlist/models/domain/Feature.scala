@@ -18,7 +18,7 @@ package uk.gov.hmrc.ratelimitedallowlist.models.domain
 
 import play.api.mvc.PathBindable
 
-case class Feature(value: String)
+case class Feature(name: String)
 
 object Feature:
   val REGEX_PATTERN = "^[a-zA-Z0-9-]+$"
@@ -31,4 +31,4 @@ object Feature:
         .map(Feature.apply)
 
     override def unbind(key: String, value: Feature): String =
-      value.value
+      value.name

@@ -26,18 +26,18 @@ class ServiceSpec extends AnyFreeSpec with Matchers:
   "PathBindable bind" - {
     "pass when the path is valid" in {
       val expected = Service("asdf-ASDF-123")
-      pathBindable.bind("serviceName", expected.value) mustBe Right(expected)
+      pathBindable.bind("service", expected.name) mustBe Right(expected)
     }
 
     "fail when the path is valid" in {
       val expected = Service("asdf_ASDF_123")
-      pathBindable.bind("serviceName", expected.value) mustBe Left("Invalid format for service name")
+      pathBindable.bind("service", expected.name) mustBe Left("Invalid format for service name")
     }
   }
 
   "PathBindable unbind" - {
     "pass" in {
       val value = Service("asdf-ASDF-123")
-      pathBindable.unbind("serviceName", value) mustBe value.value
+      pathBindable.unbind("service", value) mustBe value.name
     }
   }

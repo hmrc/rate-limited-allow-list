@@ -26,18 +26,18 @@ class FeatureSpec extends AnyFreeSpec with Matchers:
   "PathBindable bind" - {
     "pass when the path is valid" in {
       val expected = Feature("asdf-ASDF-123")
-      pathBindable.bind("listName", expected.value) mustBe Right(expected)
+      pathBindable.bind("feature", expected.name) mustBe Right(expected)
     }
 
     "fail when the path is valid" in {
       val expected = Feature("asdf_ASDF_123")
-      pathBindable.bind("listName", expected.value) mustBe Left("Invalid format for a feature")
+      pathBindable.bind("feature", expected.name) mustBe Left("Invalid format for a feature")
     }
   }
 
   "PathBindable unbind" - {
     "pass" in {
       val value = Feature("asdf-ASDF-123")
-      pathBindable.unbind("listName", value) mustBe value.value
+      pathBindable.unbind("feature", value) mustBe value.name
     }
   }

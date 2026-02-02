@@ -55,7 +55,7 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
   private val value2 = "value2"
 
   ".set" - {
-    "must save an entry that does not already exist in the repository, hashing the value" in {
+    "must save an entry that does not already exist in the repository, hashing the name" in {
       repository.set(service, feature, value1).futureValue
       val insertedRecord = findAll().futureValue.head
 
@@ -106,7 +106,7 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
   }
 
   ".check" - {
-    "must return true when a record exists for the given service, feature and value" in {
+    "must return true when a record exists for the given service, feature and name" in {
       val entry = AllowListEntry(service1, feature1, hashingFn(value1), fixedInstant)
 
       insert(entry).futureValue
@@ -114,7 +114,7 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
       repository.check(service1, feature1, value1).futureValue mustBe true
     }
 
-    "must return false when a record for the given service, feature and value does not exist" in {
+    "must return false when a record for the given service, feature and name does not exist" in {
       val entry1 = AllowListEntry(service1, feature1, hashingFn(value1), fixedInstant)
       val entry2 = AllowListEntry(service1, feature2, hashingFn(value2), fixedInstant)
       val entry3 = AllowListEntry(service2, feature1, hashingFn(value2), fixedInstant)
@@ -139,8 +139,8 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
   }
 
   given Conversion[Service, String] with 
-    def apply(x: Service): String = x.value
+    def apply(x: Service): String = x.name
 
   given Conversion[Feature, String] with 
-    def apply(x: Feature): String = x.value
+    def apply(x: Feature): String = x.name
 }

@@ -142,7 +142,7 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
   }
 
   ".addTokens" - {
-    "succeeds when the increment value is positive and updates the updated field" in {
+    "succeeds when the increment name is positive and updates the updated field" in {
       val entry1 = AllowListMetadata(service1, feature1, 10, false, fixedInstant, fixedInstant, "")
       val entry2 = AllowListMetadata(service1, feature2, 10, true, fixedInstant, fixedInstant, "")
       val entry3 = AllowListMetadata(service2, feature1, 10, true, fixedInstant, fixedInstant, "")
@@ -175,7 +175,7 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       result mustEqual UpdateResultResult.NoOpUpdateResult
     }
 
-    "returns a failed future with IllegalArgumentException when the increment value is invalid" in {
+    "returns a failed future with IllegalArgumentException when the increment name is invalid" in {
       val entry1 = AllowListMetadata(service1, feature1, 10, true, fixedInstant, fixedInstant, "")
       insert(entry1).futureValue
 
@@ -361,8 +361,8 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
     val overrideConfig =
       Configuration(
-        "mongodb.collections.allow-list-metadata.token-updates.0.service" -> service1.value,
-        "mongodb.collections.allow-list-metadata.token-updates.0.feature" -> feature1.value,
+        "mongodb.collections.allow-list-metadata.token-updates.0.service" -> service1.name,
+        "mongodb.collections.allow-list-metadata.token-updates.0.feature" -> feature1.name,
         "mongodb.collections.allow-list-metadata.token-updates.0.tokens" -> 100,
         "mongodb.collections.allow-list-metadata.token-updates.0.id" -> updatedConfigId,
       ).withFallback(Configuration.load(Environment.simple()))
@@ -384,12 +384,12 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
       "when there are multiple configs that have not been applied" in {
         val overrideConfig = Configuration(
-          "mongodb.collections.allow-list-metadata.token-updates.0.service" -> service1.value,
-          "mongodb.collections.allow-list-metadata.token-updates.0.feature" -> feature1.value,
+          "mongodb.collections.allow-list-metadata.token-updates.0.service" -> service1.name,
+          "mongodb.collections.allow-list-metadata.token-updates.0.feature" -> feature1.name,
           "mongodb.collections.allow-list-metadata.token-updates.0.tokens" -> 100,
           "mongodb.collections.allow-list-metadata.token-updates.0.id" -> updatedConfigId,
-          "mongodb.collections.allow-list-metadata.token-updates.1.service" -> service2.value,
-          "mongodb.collections.allow-list-metadata.token-updates.1.feature" -> feature2.value,
+          "mongodb.collections.allow-list-metadata.token-updates.1.service" -> service2.name,
+          "mongodb.collections.allow-list-metadata.token-updates.1.feature" -> feature2.name,
           "mongodb.collections.allow-list-metadata.token-updates.1.tokens" -> 0,
           "mongodb.collections.allow-list-metadata.token-updates.1.id" -> updatedConfigId,
           "features.allow-config-token-updates" -> true
@@ -437,8 +437,8 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
 
   given Conversion[Service, String] with 
-    def apply(x: Service): String = x.value
+    def apply(x: Service): String = x.name
 
   given Conversion[Feature, String] with 
-    def apply(x: Feature): String = x.value
+    def apply(x: Feature): String = x.name
 }

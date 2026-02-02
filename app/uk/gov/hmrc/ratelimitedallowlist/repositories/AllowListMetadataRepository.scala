@@ -58,7 +58,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
         Indexes.ascending(Field.created),
         IndexOptions()
           .name(s"${Field.created}-idx")
-          .expireAfter(config.get[Long]("mongodb.collections.allow-list-metadata.allowListTtlInDays"), TimeUnit.DAYS)
+          .expireAfter(config.get[Long]("mongodb.collections.allow-list-metadata.ttlInDays"), TimeUnit.DAYS)
       ),
       IndexModel(
         Indexes.ascending(Field.service, Field.feature),

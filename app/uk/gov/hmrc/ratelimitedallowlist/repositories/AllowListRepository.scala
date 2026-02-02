@@ -54,7 +54,7 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
         Indexes.ascending(Field.created),
         IndexOptions()
           .name(s"${Field.created}-idx")
-          .expireAfter(config.get[Long]("mongodb.collections.allow-list.allowListTtlInDays"), TimeUnit.DAYS)
+          .expireAfter(config.get[Long]("mongodb.collections.allow-list.ttlInDays"), TimeUnit.DAYS)
       ),
       IndexModel(
         Indexes.ascending(Field.service, Field.feature, Field.hashedValue),

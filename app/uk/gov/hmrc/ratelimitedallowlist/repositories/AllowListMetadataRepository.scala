@@ -17,13 +17,13 @@
 package uk.gov.hmrc.ratelimitedallowlist.repositories
 
 import com.mongodb.MongoException
-import uk.gov.hmrc.ratelimitedallowlist.models.Done
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
 import org.mongodb.scala.model.*
-import play.api.Logging
 import play.api.libs.json.OFormat
+import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.ratelimitedallowlist.models.Done
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.AllowListMetadata.Field
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.*
 
 import java.time.Clock
@@ -45,31 +45,36 @@ trait AllowListMetadataRepository {
 
 @Singleton
 class AllowListMetadataRepositoryImpl @Inject()(
-  mongoComponent: MongoComponent,
-  config: AllowListRepositoryConfig,
-  clock: Clock
+    mongoComponent: MongoComponent,
+    config: Configuration,
+    clock: Clock
 )(using ExecutionContext) extends PlayMongoRepository[AllowListMetadata](
     collectionName = "allow-list-metadata",
     mongoComponent = mongoComponent,
     domainFormat = AllowListMetadata.format,
+    replaceIndexes = config.get[Boolean]("mongodb.collections.allow-list-metadata.replaceIndexes"),
     indexes = Seq(
       IndexModel(
-        Indexes.ascending("created"),
+        Indexes.ascending(Field.created),
         IndexOptions()
-          .name("createdIdx")
-          .expireAfter(config.allowListTtlInDays, TimeUnit.DAYS)
+          .name(s"${Field.created}-idx")
+          .expireAfter(config.get[Long]("mongodb.collections.allow-list-metadata.allowListTtlInDays"), TimeUnit.DAYS)
       ),
       IndexModel(
-        Indexes.ascending("service", "feature"),
+        Indexes.ascending(Field.service, Field.feature),
         IndexOptions()
-          .name("serviceListHashedValueIdx")
+          .name(s"${Field.service}-${Field.feature}-idx")
           .unique(true)
       )
     )
   ) with AllowListMetadataRepository with Logging {
-  
+
+  private val allowTokenUpdate: Boolean = config.get[Boolean]("features.allow-config-token-updates")
+
+  val initCompleted = onInit()
+
   def create(service: Service, feature: Feature): Future[Done] = {
-    val entry = AllowListMetadata(service.value, feature.value, 0, false, clock.instant(), clock.instant())
+    val entry = AllowListMetadata(service.value, feature.value, 0, false, clock.instant(), clock.instant(), "")
     collection
       .insertOne(entry)
       .toFuture()
@@ -82,8 +87,8 @@ class AllowListMetadataRepositoryImpl @Inject()(
   def get(service: Service, feature: Feature): Future[Option[AllowListMetadata]] =
     collection.find(
       Filters.and(
-        Filters.equal("service", service.value),
-        Filters.equal("feature", feature.value)
+        Filters.equal(Field.service, service.value),
+        Filters.equal(Field.feature, feature.value)
       )
     ).toFuture()
       .map(_.headOption)
@@ -92,8 +97,8 @@ class AllowListMetadataRepositoryImpl @Inject()(
     collection
       .deleteMany(
         Filters.and(
-          Filters.equal("service", service.value),
-          Filters.equal("feature", feature.value)
+          Filters.equal(Field.service, service.value),
+          Filters.equal(Field.feature, feature.value)
         )
       ).toFuture()
       .map {
@@ -107,12 +112,12 @@ class AllowListMetadataRepositoryImpl @Inject()(
       collection
         .updateOne(
           Filters.and(
-            Filters.equal("service", service.value),
-            Filters.equal("feature", feature.value)
+            Filters.equal(Field.service, service.value),
+            Filters.equal(Field.feature, feature.value)
           ),
           Updates.combine(
-            Updates.inc("tokenCount", incrementCount),
-            Updates.set("lastUpdated", clock.instant()),
+            Updates.inc(Field.tokens, incrementCount),
+            Updates.set(Field.lastUpdated, clock.instant()),
           )
         )
         .toFuture()
@@ -131,12 +136,12 @@ class AllowListMetadataRepositoryImpl @Inject()(
     collection
       .updateOne(
         Filters.and(
-          Filters.equal("service", service.value),
-          Filters.equal("feature", feature.value)
+          Filters.equal(Field.service, service.value),
+          Filters.equal(Field.feature, feature.value)
         ),
         Updates.combine(
-          Updates.set("canIssueTokens", false),
-          Updates.set("lastUpdated", clock.instant()),
+          Updates.set(Field.canIssueTokens, false),
+          Updates.set(Field.lastUpdated, clock.instant()),
         )
       )
       .toFuture()
@@ -150,12 +155,12 @@ class AllowListMetadataRepositoryImpl @Inject()(
     collection
       .updateOne(
         Filters.and(
-          Filters.equal("service", service.value),
-          Filters.equal("feature", feature.value)
+          Filters.equal(Field.service, service.value),
+          Filters.equal(Field.feature, feature.value)
         ),
         Updates.combine(
-          Updates.set("canIssueTokens", true),
-          Updates.set("lastUpdated", clock.instant()),
+          Updates.set(Field.canIssueTokens, true),
+          Updates.set(Field.lastUpdated, clock.instant()),
         )
       )
       .toFuture()
@@ -169,14 +174,14 @@ class AllowListMetadataRepositoryImpl @Inject()(
     collection
       .updateOne(
         Filters.and(
-          Filters.equal("service", service.value),
-          Filters.equal("feature", feature.value),
-          Filters.equal("canIssueTokens", true),
-          Filters.gte("tokenCount", 1),
+          Filters.equal(Field.service, service.value),
+          Filters.equal(Field.feature, feature.value),
+          Filters.equal(Field.canIssueTokens, true),
+          Filters.gte(Field.tokens, 1),
         ),
         Updates.combine(
-          Updates.inc("tokenCount", -1),
-          Updates.set("lastUpdated", clock.instant()),
+          Updates.inc(Field.tokens, -1),
+          Updates.set(Field.lastUpdated, clock.instant()),
         )
       )
       .toFuture()
@@ -190,12 +195,12 @@ class AllowListMetadataRepositoryImpl @Inject()(
     collection
       .updateOne(
         Filters.and(
-          Filters.equal("service", service.value),
-          Filters.equal("feature", feature.value)
+          Filters.equal(Field.service, service.value),
+          Filters.equal(Field.feature, feature.value)
         ),
         Updates.combine(
-          Updates.set("tokenCount", count),
-          Updates.set("lastUpdated", clock.instant()),
+          Updates.set(Field.tokens, count),
+          Updates.set(Field.lastUpdated, clock.instant()),
         )
       )
       .toFuture()
@@ -204,4 +209,45 @@ class AllowListMetadataRepositoryImpl @Inject()(
           if (result.getModifiedCount == 0) then UpdateResultResult.NoOpUpdateResult
           else UpdateResultResult.UpdateSuccessful
       }
+
+
+  private def onInit(): Future[Done] = {
+    if !allowTokenUpdate then
+      logger.info("Token driven config updates are disabled")
+      Future.successful(Done)
+    else {
+      logger.info("Token driven config updates are enabled")
+      val updates = config.get[Seq[AllowListMetadataConfigUpdate]]("mongodb.collections.allow-list-metadata.token-updates")
+
+      Future.sequence(
+        updates.map {
+          case AllowListMetadataConfigUpdate(service, feature, tokens, id) =>
+            collection
+              .updateOne(
+                Filters.and(
+                  Filters.equal(Field.service, service),
+                  Filters.equal(Field.feature, feature),
+                  Filters.notEqual(Field.tokenConfigUpdateId, id)
+                ),
+                Updates.combine(
+                  Updates.set(Field.tokens, tokens),
+                  Updates.set(Field.lastUpdated, clock.instant()),
+                  Updates.set(Field.tokenConfigUpdateId, id)
+                )
+              )
+              .toFuture()
+              .map {
+                result =>
+                  if (result.getMatchedCount == 0 || result.getModifiedCount == 0) then {
+                    logger.info("Did not update token count")
+                    Done
+                  } else {
+                    logger.info(s"Tokens updated for service $service and $service to tokens=$tokens and update id $id")
+                    Done
+                  }
+              }
+        }
+      ).map(_ => Done)
+    }
+  }
 }

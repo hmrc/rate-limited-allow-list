@@ -20,6 +20,7 @@ import org.scalatest.OptionValues
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.freespec.AnyFreeSpecLike
 import org.scalatest.matchers.must.Matchers
+import play.api.{Configuration, Environment}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.ratelimitedallowlist.crypto.{OneWayHash, ShaOneWayHash}
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListEntry, Feature, Service}
@@ -31,7 +32,7 @@ import scala.concurrent.Future
 
 class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMongoRepositorySupport[AllowListEntry], OptionValues, ScalaFutures {
 
-  private val config = AllowListRepositoryConfig(1)
+  private val config = Configuration.load(Environment.simple())
   private val fixedInstant = Instant.now.truncatedTo(ChronoUnit.MILLIS)
   private val clock = Clock.fixed(fixedInstant, ZoneId.systemDefault())
 

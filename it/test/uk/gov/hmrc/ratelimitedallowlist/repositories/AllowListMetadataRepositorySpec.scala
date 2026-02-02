@@ -361,10 +361,10 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
     val overrideConfig =
       Configuration(
-        "mongodb.collections.allow-list.token-updates.0.service" -> service1.value,
-        "mongodb.collections.allow-list.token-updates.0.feature" -> feature1.value,
-        "mongodb.collections.allow-list.token-updates.0.tokens" -> 100,
-        "mongodb.collections.allow-list.token-updates.0.id" -> updatedConfigId,
+        "mongodb.collections.allow-list-metadata.token-updates.0.service" -> service1.value,
+        "mongodb.collections.allow-list-metadata.token-updates.0.feature" -> feature1.value,
+        "mongodb.collections.allow-list-metadata.token-updates.0.tokens" -> 100,
+        "mongodb.collections.allow-list-metadata.token-updates.0.id" -> updatedConfigId,
       ).withFallback(Configuration.load(Environment.simple()))
 
     "will update the token count on class initialisation" - {
@@ -384,14 +384,14 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
       "when there are multiple configs that have not been applied" in {
         val overrideConfig = Configuration(
-          "mongodb.collections.allow-list.token-updates.0.service" -> service1.value,
-          "mongodb.collections.allow-list.token-updates.0.feature" -> feature1.value,
-          "mongodb.collections.allow-list.token-updates.0.tokens" -> 100,
-          "mongodb.collections.allow-list.token-updates.0.id" -> updatedConfigId,
-          "mongodb.collections.allow-list.token-updates.1.service" -> service2.value,
-          "mongodb.collections.allow-list.token-updates.1.feature" -> feature2.value,
-          "mongodb.collections.allow-list.token-updates.1.tokens" -> 0,
-          "mongodb.collections.allow-list.token-updates.1.id" -> updatedConfigId,
+          "mongodb.collections.allow-list-metadata.token-updates.0.service" -> service1.value,
+          "mongodb.collections.allow-list-metadata.token-updates.0.feature" -> feature1.value,
+          "mongodb.collections.allow-list-metadata.token-updates.0.tokens" -> 100,
+          "mongodb.collections.allow-list-metadata.token-updates.0.id" -> updatedConfigId,
+          "mongodb.collections.allow-list-metadata.token-updates.1.service" -> service2.value,
+          "mongodb.collections.allow-list-metadata.token-updates.1.feature" -> feature2.value,
+          "mongodb.collections.allow-list-metadata.token-updates.1.tokens" -> 0,
+          "mongodb.collections.allow-list-metadata.token-updates.1.id" -> updatedConfigId,
           "features.allow-config-token-updates" -> true
         ).withFallback(Configuration.load(Environment.simple()))
 

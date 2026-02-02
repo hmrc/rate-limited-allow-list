@@ -52,13 +52,13 @@ class AllowListMetadataRepositoryImpl @Inject()(
     collectionName = "allow-list-metadata",
     mongoComponent = mongoComponent,
     domainFormat = AllowListMetadata.format,
-    replaceIndexes = config.get[Boolean]("mongodb.collections.allow-list.replaceIndexes"),
+    replaceIndexes = config.get[Boolean]("mongodb.collections.allow-list-metadata.replaceIndexes"),
     indexes = Seq(
       IndexModel(
         Indexes.ascending(Field.created),
         IndexOptions()
           .name(s"${Field.created}-idx")
-          .expireAfter(config.get[Long]("mongodb.collections.allow-list.allowListTtlInDays"), TimeUnit.DAYS)
+          .expireAfter(config.get[Long]("mongodb.collections.allow-list-metadata.allowListTtlInDays"), TimeUnit.DAYS)
       ),
       IndexModel(
         Indexes.ascending(Field.service, Field.feature),
@@ -69,7 +69,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
     )
   ) with AllowListMetadataRepository with Logging {
 
-  val allowTokenUpdate: Boolean = config.get[Boolean]("features.allow-config-token-updates")
+  private val allowTokenUpdate: Boolean = config.get[Boolean]("features.allow-config-token-updates")
 
   val initCompleted = onInit()
 
@@ -216,7 +216,8 @@ class AllowListMetadataRepositoryImpl @Inject()(
       logger.info("Token driven config updates are disabled")
       Future.successful(Done)
     else {
-      val updates = config.get[Seq[AllowListMetadataConfigUpdate]]("mongodb.collections.allow-list.token-updates")
+      logger.info("Token driven config updates are enabled")
+      val updates = config.get[Seq[AllowListMetadataConfigUpdate]]("mongodb.collections.allow-list-metadata.token-updates")
 
       Future.sequence(
         updates.map {

@@ -37,10 +37,6 @@ class HealthEndpointIntegrationSpec
   private val httpClient = app.injector.instanceOf[HttpClientV2]
   private val baseUrl  = s"http://localhost:$port"
 
-  override def fakeApplication(): Application =
-    GuiceApplicationBuilder()
-      .build()
-
   "service health endpoint" should:
     "respond with 200 status" in:
       val response =

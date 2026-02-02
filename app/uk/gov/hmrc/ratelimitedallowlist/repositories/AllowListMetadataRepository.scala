@@ -73,8 +73,11 @@ class AllowListMetadataRepositoryImpl @Inject()(
 
   val initCompleted = onInit()
 
-  def create(service: Service, feature: Feature): Future[Done] = {
-    val entry = AllowListMetadata(service.value, feature.value, 0, false, clock.instant(), clock.instant(), "")
+  def create(service: Service, feature: Feature): Future[Done] =
+    create(service, feature, false)
+  
+  private def create(service: Service, feature: Feature, canIssueTokens: Boolean) = {
+    val entry = AllowListMetadata(service.value, feature.value, 0, canIssueTokens, clock.instant(), clock.instant(), "")
     collection
       .insertOne(entry)
       .toFuture()
@@ -82,6 +85,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
       .recover {
         case e: MongoException if e.getCode == DuplicateErrorCode => Done
       }
+    
   }
   
   def get(service: Service, feature: Feature): Future[Option[AllowListMetadata]] =
@@ -211,6 +215,49 @@ class AllowListMetadataRepositoryImpl @Inject()(
       }
 
 
+  private def updateByConfig(config: AllowListMetadataConfigUpdate) = {
+    collection
+      .updateOne(
+        Filters.and(
+          Filters.equal(Field.service, config.service),
+          Filters.equal(Field.feature, config.feature),
+          Filters.notEqual(Field.tokenConfigUpdateId, config.id)
+        ),
+        Updates.combine(
+          Updates.set(Field.tokens, config.tokens),
+          Updates.set(Field.lastUpdated, clock.instant()),
+          Updates.set(Field.tokenConfigUpdateId, config.id)
+        )
+      )
+      .toFuture()
+      .map {
+        result =>
+          if (result.getMatchedCount == 0 || result.getModifiedCount == 0) then {
+            logger.info("Did not update token count")
+            Done
+          } else {
+            logger.info(s"Tokens updated for ${config.service} and ${config.service} to ${config.tokens} for id ${config.id}")
+            Done
+          }
+      }
+  }
+
+  private def createIfMissing(updates: Seq[AllowListMetadataConfigUpdate]): Future[Seq[Done]] = {
+    val services = updates.map(update => Filters.and(
+      Filters.equal(Field.service, update.service),
+      Filters.equal(Field.feature, update.feature)
+    ))
+
+    collection
+      .find(Filters.or(services: _*))
+      .toFuture()
+      .flatMap { results =>
+        val existing = results.map(metadata => (metadata.service, metadata.feature)).toSet
+        val missing = updates.filterNot(update => existing.contains(update.service -> update.feature))
+        Future.sequence(missing.map(x => create(Service(x.service), Feature(x.feature), canIssueTokens = true)))
+      }
+  }
+
   private def onInit(): Future[Done] = {
     if !allowTokenUpdate then
       logger.info("Token driven config updates are disabled")
@@ -218,36 +265,10 @@ class AllowListMetadataRepositoryImpl @Inject()(
     else {
       logger.info("Token driven config updates are enabled")
       val updates = config.get[Seq[AllowListMetadataConfigUpdate]]("mongodb.collections.allow-list-metadata.token-updates")
-
-      Future.sequence(
-        updates.map {
-          case AllowListMetadataConfigUpdate(service, feature, tokens, id) =>
-            collection
-              .updateOne(
-                Filters.and(
-                  Filters.equal(Field.service, service),
-                  Filters.equal(Field.feature, feature),
-                  Filters.notEqual(Field.tokenConfigUpdateId, id)
-                ),
-                Updates.combine(
-                  Updates.set(Field.tokens, tokens),
-                  Updates.set(Field.lastUpdated, clock.instant()),
-                  Updates.set(Field.tokenConfigUpdateId, id)
-                )
-              )
-              .toFuture()
-              .map {
-                result =>
-                  if (result.getMatchedCount == 0 || result.getModifiedCount == 0) then {
-                    logger.info("Did not update token count")
-                    Done
-                  } else {
-                    logger.info(s"Tokens updated for service $service and $service to tokens=$tokens and update id $id")
-                    Done
-                  }
-              }
-        }
-      ).map(_ => Done)
+      for
+        _ <- createIfMissing(updates)
+        _ <- Future.sequence(updates.map(updateByConfig))
+      yield Done
     }
   }
 }

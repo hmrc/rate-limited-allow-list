@@ -367,6 +367,16 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
         "mongodb.collections.allow-list-metadata.token-updates.0.id" -> updatedConfigId,
       ).withFallback(Configuration.load(Environment.simple()))
 
+    "will create config for service and feature if not created" in {
+      val overrideConfig2 = Configuration("features.allow-config-token-updates" -> true).withFallback(overrideConfig)
+
+      AllowListMetadataRepositoryImpl(mongoComponent, overrideConfig2, clock).initCompleted.futureValue
+
+      findAll().futureValue must contain theSameElementsAs List(
+        entry1.copy(tokens = 100, tokenConfigUpdateId = updatedConfigId)
+      )
+    }
+
     "will update the token count on class initialisation" - {
       "when the config has not been applied" in {
         val overrideConfig2 = Configuration("features.allow-config-token-updates" -> true).withFallback(overrideConfig)

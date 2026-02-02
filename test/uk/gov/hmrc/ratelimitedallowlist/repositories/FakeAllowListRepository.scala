@@ -22,7 +22,7 @@ import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
 import scala.concurrent.Future
 
 class FakeAllowListRepository(setResult: Option[Done] = None,
-                              removeResult: Option[AllowListDeleteResult] = None,
+                              removeResult: Option[DeleteResult] = None,
                               clearResult: Option[Done] = None,
                               checkResult: Option[Boolean] = None,
                               countResult: Option[Long] = None) extends AllowListRepository {
@@ -37,7 +37,7 @@ class FakeAllowListRepository(setResult: Option[Done] = None,
   def set(service: Service, feature: Feature, value: String): Future[Done] =
     Future.successful(setResult.getOrElse(throwNotImplemented("set")))
 
-  def remove(service: Service, feature: Feature, value: String): Future[AllowListDeleteResult] =
+  def remove(service: Service, feature: Feature, value: String): Future[DeleteResult] =
     Future.successful(removeResult.getOrElse(throwNotImplemented("remove")))
 
   def clear(service: Service, feature: Feature): Future[Done] =

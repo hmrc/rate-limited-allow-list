@@ -1,3 +1,3 @@
 # microservice specific routes
 
-POST  /services/:serviceName/features/:feature            uk.gov.hmrc.ratelimitedallowlist.controllers.AllowListController.checkAllowList(serviceName: Service, feature: Feature)
+POST  /services/:service/features/:feature             uk.gov.hmrc.ratelimitedallowlist.controllers.AllowListController.checkAllowList(service: Service, feature: Feature)

@@ -66,7 +66,7 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
   ) with AllowListRepository {
 
   def set(service: Service, feature: Feature, value: String): Future[Done] = {
-    val entry = AllowListEntry(service.value, feature.value, oneWayHash(value), clock.instant())
+    val entry = AllowListEntry(service.name, feature.name, oneWayHash(value), clock.instant())
 
     collection
       .insertOne(entry)
@@ -80,16 +80,16 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
   def clear(service: Service, feature: Feature): Future[Done] =
     collection
       .deleteMany(Filters.and(
-        Filters.equal(Field.service, service.value),
-        Filters.equal(Field.feature, feature.value)
+        Filters.equal(Field.service, service.name),
+        Filters.equal(Field.feature, feature.name)
       )).toFuture()
       .map(_ => Done)
 
   def check(service: Service, feature: Feature, value: String): Future[Boolean] =
     collection
       .find(Filters.and(
-        Filters.equal(Field.service, service.value),
-        Filters.equal(Field.feature, feature.value),
+        Filters.equal(Field.service, service.name),
+        Filters.equal(Field.feature, feature.name),
         Filters.equal(Field.hashedValue, oneWayHash(value))
       ))
       .toFuture()
@@ -97,8 +97,8 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
 
   def count(service: Service, feature: Feature): Future[Long] =
     collection.countDocuments(Filters.and(
-      Filters.equal(Field.service, service.value),
-      Filters.equal(Field.feature, feature.value)
+      Filters.equal(Field.service, service.name),
+      Filters.equal(Field.feature, feature.name)
     )).toFuture()
 }
 

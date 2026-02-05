@@ -71,7 +71,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
 
   private val allowTokenUpdate: Boolean = config.get[Boolean]("features.allow-config-token-updates")
 
-  val initCompleted = onInit()
+  val initCompleted: Future[Done] = onInit()
 
   def create(service: Service, feature: Feature): Future[Done] =
     create(service, feature, false)
@@ -127,7 +127,9 @@ class AllowListMetadataRepositoryImpl @Inject()(
         .toFuture()
         .map {
           result =>
-            if (result.getModifiedCount == 0) then UpdateResultResult.NoOpUpdateResult
+            if (result.getModifiedCount == 0) then
+              logger.info(s"Could not add tokens as no matching record for $service and $feature was found.")
+              UpdateResultResult.NoOpUpdateResult
             else UpdateResultResult.UpdateSuccessful
         }
     else
@@ -151,8 +153,11 @@ class AllowListMetadataRepositoryImpl @Inject()(
       .toFuture()
       .map {
         result =>
-          if (result.getModifiedCount == 0) then UpdateResultResult.NoOpUpdateResult
-          else UpdateResultResult.UpdateSuccessful
+          if (result.getModifiedCount == 0) then
+            logger.info(s"Could stop issuing tokens as no matching record for $service and $feature was found.")
+            UpdateResultResult.NoOpUpdateResult
+          else
+            UpdateResultResult.UpdateSuccessful
       }
 
   def startIssuingTokens(service: Service, feature: Feature): Future[UpdateResultResult] =
@@ -170,7 +175,9 @@ class AllowListMetadataRepositoryImpl @Inject()(
       .toFuture()
       .map {
         result =>
-          if (result.getModifiedCount == 0) then UpdateResultResult.NoOpUpdateResult
+          if (result.getModifiedCount == 0) then
+            logger.info(s"Could start issuing tokens as no matching record for $service and $feature was found.")
+            UpdateResultResult.NoOpUpdateResult
           else UpdateResultResult.UpdateSuccessful
       }
  
@@ -210,7 +217,9 @@ class AllowListMetadataRepositoryImpl @Inject()(
       .toFuture()
       .map {
         result =>
-          if (result.getModifiedCount == 0) then UpdateResultResult.NoOpUpdateResult
+          if (result.getModifiedCount == 0) then
+            logger.info(s"Could not set tokens as no matching record for $service and $feature was found.")
+            UpdateResultResult.NoOpUpdateResult
           else UpdateResultResult.UpdateSuccessful
       }
 

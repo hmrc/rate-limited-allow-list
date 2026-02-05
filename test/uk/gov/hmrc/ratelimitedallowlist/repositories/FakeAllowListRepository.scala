@@ -43,7 +43,7 @@ class FakeAllowListRepository(setResult: Option[Done] = None,
   def clear(service: Service, feature: Feature): Future[Done] =
     Future.successful(clearResult.getOrElse(throwNotImplemented("clear")))
 
-  def checkExist(service: Service, feature: Feature, value: String): Future[Boolean] =
+  def checkExists(service: Service, feature: Feature, value: String): Future[Boolean] =
     Future.successful(checkResult.getOrElse(throwNotImplemented("check")))
 
   def count(service: Service, feature: Feature): Future[Long] =

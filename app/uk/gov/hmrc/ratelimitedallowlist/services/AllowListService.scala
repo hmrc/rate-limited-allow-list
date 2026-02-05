@@ -37,7 +37,7 @@ class AllowListServiceImpl @Inject()(metadata: AllowListMetadataRepository,
 
   override def checkOrAdd(service: Service, feature: Feature, identifier: String): Future[CheckResult] =
     if checkIsEnabled then
-      allowList.checkExist(service, feature, identifier).flatMap:
+      allowList.checkExists(service, feature, identifier).flatMap:
         case true =>
           logger.debug("Exists")
           Future.successful(Exists)

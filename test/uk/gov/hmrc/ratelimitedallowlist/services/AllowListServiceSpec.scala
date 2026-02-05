@@ -32,8 +32,8 @@ class AllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFutures:
   private val feature1 = Feature("feature1")
   private val identifier = "identifier value"
 
-  ".check" - {
-    "when check are disabled in configuration" - {
+  ".checkExist" - {
+    "when checkExist are disabled in configuration" - {
       "returns false" in {
         val metadataRepository = FakeAllowListMetadataRepository()
         val allowListRepository = FakeAllowListRepository()
@@ -57,7 +57,7 @@ class AllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFutures:
       }
 
       "returns true" - {
-        "when the metadataRepo issues a token and allowListRepo check returns false" in {
+        "when the metadataRepo issues a token and allowListRepo checkExist returns false" in {
           val metadataRepository = FakeAllowListMetadataRepository(issueTokenResult = Some(UpdateSuccessful))
           val allowListRepository = FakeAllowListRepository(checkResult = Some(false), setResult = Some(Done))
           val config = Configuration.from(Map("features.allow-checks" -> "true"))

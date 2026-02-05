@@ -37,7 +37,7 @@ class AllowListController @Inject() (
   def checkAllowList(service: Service, feature: Feature): Action[CheckRequest] =
     Action.async(parse.json[CheckRequest]):
       request =>
-        Mdc.putMdc(Map("service" -> service.value, "feature" -> feature.value,"api-op" -> "check"))
+        Mdc.putMdc(Map("service" -> service.value, "feature" -> feature.value,"api-op" -> "checkExist"))
         allowList.check(service, feature, request.body.identifier).map:
           checkResult =>
              Ok(Json.toJsObject(CheckResponse(included = checkResult)))

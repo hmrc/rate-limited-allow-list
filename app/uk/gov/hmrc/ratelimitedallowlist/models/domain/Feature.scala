@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.ratelimitedallowlist.models.domain
 
+import play.api.libs.json.Reads
 import play.api.mvc.PathBindable
 
 case class Feature(value: String)
@@ -32,3 +33,5 @@ object Feature:
 
     override def unbind(key: String, value: Feature): String =
       value.value
+
+  given Reads[Feature] = summon[Reads[String]].map(Feature.apply)

@@ -39,4 +39,4 @@ object AllowListMetadata extends MongoJavatimeFormats.Implicits:
     val lastUpdated = "lastUpdated"
     val tokenConfigUpdateId = "tokenConfigUpdateId"
     
-  val format: OFormat[AllowListMetadata] = Json.format
+  given format: OFormat[AllowListMetadata] = Json.format

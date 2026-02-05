@@ -21,6 +21,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import play.api.Configuration
 import uk.gov.hmrc.ratelimitedallowlist.models.Done
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.CheckResult.{Added, Excluded, Exists}
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
 import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResultResult.{NoOpUpdateResult, UpdateSuccessful}
 import uk.gov.hmrc.ratelimitedallowlist.repositories.{FakeAllowListMetadataRepository, FakeAllowListRepository}
@@ -32,15 +33,15 @@ class AllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFutures:
   private val feature1 = Feature("feature1")
   private val identifier = "identifier value"
 
-  ".check" - {
-    "when check are disabled in configuration" - {
+  ".checkExists" - {
+    "when checkExists are disabled in configuration" - {
       "returns false" in {
         val metadataRepository = FakeAllowListMetadataRepository()
         val allowListRepository = FakeAllowListRepository()
         val config = Configuration.from(Map("features.allow-checks" -> "false"))
         val service = AllowListServiceImpl(metadataRepository, allowListRepository, config)
 
-        service.check(service1, feature1, identifier).futureValue mustEqual false
+        service.checkOrAdd(service1, feature1, identifier).futureValue mustEqual Excluded
       }
     }
 
@@ -52,18 +53,18 @@ class AllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFutures:
           val config = Configuration.from(Map("features.allow-checks" -> "true"))
           val service = AllowListServiceImpl(metadataRepository, allowListRepository, config)
 
-          service.check(service1, feature1, identifier).futureValue mustEqual false
+          service.checkOrAdd(service1, feature1, identifier).futureValue mustEqual Excluded
         }
       }
 
       "returns true" - {
-        "when the metadataRepo issues a token and allowListRepo check returns false" in {
+        "when the metadataRepo issues a token and allowListRepo checkExists returns false" in {
           val metadataRepository = FakeAllowListMetadataRepository(issueTokenResult = Some(UpdateSuccessful))
           val allowListRepository = FakeAllowListRepository(checkResult = Some(false), setResult = Some(Done))
           val config = Configuration.from(Map("features.allow-checks" -> "true"))
           val service = AllowListServiceImpl(metadataRepository, allowListRepository, config)
 
-          service.check(service1, feature1, identifier).futureValue mustEqual true
+          service.checkOrAdd(service1, feature1, identifier).futureValue mustEqual Added
  }
         
         "when the allowListRepo returns true" in {
@@ -72,7 +73,7 @@ class AllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFutures:
           val config = Configuration.from(Map("features.allow-checks" -> "true"))
           val service = AllowListServiceImpl(metadataRepository, allowListRepository, config)
 
-          service.check(service1, feature1, identifier).futureValue mustEqual true
+          service.checkOrAdd(service1, feature1, identifier).futureValue mustEqual Exists
         }
       }
     }

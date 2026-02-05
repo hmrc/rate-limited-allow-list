@@ -34,7 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 trait AllowListRepository {
   def set(service: Service, feature: Feature, value: String): Future[Done]
   def clear(service: Service, feature: Feature): Future[Done]
-  def check(service: Service, feature: Feature, value: String): Future[Boolean]
+  def checkExists(service: Service, feature: Feature, value: String): Future[Boolean]
   def count(service: Service, feature: Feature): Future[Long]
 }
 
@@ -85,7 +85,7 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
       )).toFuture()
       .map(_ => Done)
 
-  def check(service: Service, feature: Feature, value: String): Future[Boolean] =
+  def checkExists(service: Service, feature: Feature, value: String): Future[Boolean] =
     collection
       .find(Filters.and(
         Filters.equal(Field.service, service.value),

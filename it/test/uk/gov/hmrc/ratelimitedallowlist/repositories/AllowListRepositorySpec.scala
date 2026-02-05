@@ -105,13 +105,13 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
     }
   }
 
-  ".check" - {
+  ".checkExists" - {
     "must return true when a record exists for the given service, feature and value" in {
       val entry = AllowListEntry(service1, feature1, hashingFn(value1), fixedInstant)
 
       insert(entry).futureValue
 
-      repository.check(service1, feature1, value1).futureValue mustBe true
+      repository.checkExists(service1, feature1, value1).futureValue mustBe true
     }
 
     "must return false when a record for the given service, feature and value does not exist" in {
@@ -121,7 +121,7 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
 
       Future.sequence(Seq(entry1, entry2, entry3).map(insert)).futureValue
 
-      repository.check(service1, feature1, value2).futureValue mustBe false
+      repository.checkExists(service1, feature1, value2).futureValue mustBe false
     }
   }
 

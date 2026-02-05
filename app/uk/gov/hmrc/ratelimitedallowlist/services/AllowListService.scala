@@ -16,29 +16,41 @@
 
 package uk.gov.hmrc.ratelimitedallowlist.services
 
-import play.api.Configuration
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
-import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListMetadataRepository, AllowListRepository, UpdateResultResult}
+import play.api.{Configuration, Logging}
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.CheckResult.*
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.{CheckResult, Feature, Service}
+import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResultResult.*
+import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListMetadataRepository, AllowListRepository}
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 trait AllowListService:
-  def check(service: Service, feature: Feature, identifier: String): Future[Boolean]
+  def checkOrAdd(service: Service, feature: Feature, identifier: String): Future[CheckResult]
 
 class AllowListServiceImpl @Inject()(metadata: AllowListMetadataRepository,
                                      allowList: AllowListRepository,
-                                     configuration: Configuration)(using ExecutionContext) extends AllowListService:
+                                     configuration: Configuration
+                                    )(using ExecutionContext) extends AllowListService, Logging:
 
   private val checkIsEnabled = configuration.get[Boolean]("features.allow-checks")
-  
-  override def check(service: Service, feature: Feature, identifier: String): Future[Boolean] =
+
+  override def checkOrAdd(service: Service, feature: Feature, identifier: String): Future[CheckResult] =
     if checkIsEnabled then
-      allowList.check(service, feature, identifier).flatMap:
-        case true => Future.successful(true)
-        case false => metadata.issueToken(service, feature).flatMap:
-          case UpdateResultResult.NoOpUpdateResult => Future.successful(false)
-          case UpdateResultResult.UpdateSuccessful =>
-            allowList.set(service, feature, identifier).map(_ => true)
+      allowList.checkExists(service, feature, identifier).flatMap:
+        case true =>
+          logger.debug("Exists")
+          Future.successful(Exists)
+        case false =>
+          metadata.issueToken(service, feature).flatMap:
+            case NoOpUpdateResult => 
+              logger.debug("Not found, cannot be added")
+              Future.successful(Excluded)
+            case UpdateSuccessful =>
+              allowList.set(service, feature, identifier)
+                .map:
+                  _ =>
+                    logger.debug("Added")
+                    Added
     else
-      Future.successful(false)
+      Future.successful(Excluded)

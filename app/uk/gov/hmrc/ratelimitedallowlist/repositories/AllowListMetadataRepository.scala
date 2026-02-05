@@ -30,6 +30,7 @@ import java.time.Clock
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 trait AllowListMetadataRepository {
   def create(service: Service, feature: Feature): Future[Done]
@@ -224,7 +225,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
       }
 
 
-  private def updateByConfig(config: AllowListMetadataConfigUpdate) = {
+  private def updateByConfig(config: AllowListMetadataConfigUpdate): Future[Done] = {
     collection
       .updateOne(
         Filters.and(
@@ -252,19 +253,29 @@ class AllowListMetadataRepositoryImpl @Inject()(
   }
 
   private def createIfMissing(updates: Seq[AllowListMetadataConfigUpdate]): Future[Seq[Done]] = {
-    val services = updates.map(update => Filters.and(
+    def doCreate(tokenConfig: AllowListMetadataConfigUpdate): Future[Done] = {
+      val AllowListMetadataConfigUpdate(service, feature, _, _)  = tokenConfig
+      val result = create(Service(service), Feature(feature), canIssueTokens = true)
+      result.onComplete(_ => logger.info(s"Created record for $service and $feature"))
+      result.recover {
+        case NonFatal(e) =>
+          logger.error(s"Could not update record for $service and $feature", e)
+          Done
+      }
+    }
+
+    val servicesFilter = updates.map(update => Filters.and(
       Filters.equal(Field.service, update.service),
       Filters.equal(Field.feature, update.feature)
     ))
 
-    collection
-      .find(Filters.or(services: _*))
-      .toFuture()
-      .flatMap { results =>
-        val existing = results.map(metadata => (metadata.service, metadata.feature)).toSet
-        val missing = updates.filterNot(update => existing.contains(update.service -> update.feature))
-        Future.sequence(missing.map(x => create(Service(x.service), Feature(x.feature), canIssueTokens = true)))
-      }
+    for {
+      results      <- collection.find(Filters.or(servicesFilter: _*)).toFuture()
+      existing     =  results.map(metadata => (metadata.service, metadata.feature)).toSet
+      missing      =  updates.filterNot(update => existing.contains(update.service -> update.feature))
+      createResult =  missing.map(doCreate)
+      result       <- Future.sequence(createResult)
+    } yield result
   }
 
   private def onInit(): Future[Done] = {

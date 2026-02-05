@@ -25,6 +25,8 @@ import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListMetadata, Feature, Service}
 import uk.gov.hmrc.ratelimitedallowlist.repositories.CreateResult.NoOpCreateResult
 import uk.gov.hmrc.ratelimitedallowlist.utils.TimeTravelClock
+import uk.gov.hmrc.ratelimitedallowlist.repositories.DeleteResult.*
+import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResultResult.*
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -121,7 +123,7 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
       val result = repository.clear(service1, feature1).futureValue
 
-      result mustEqual DeleteResult.DeleteSuccessful
+      result mustEqual DeleteSuccessful
 
       findAll().futureValue must contain theSameElementsAs Seq(entry2, entry3, entry4)
     }
@@ -132,7 +134,7 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
       val result = repository.clear(service1, feature2).futureValue
 
-      result mustEqual DeleteResult.NoOpDeleteResult
+      result mustEqual NoOpDeleteResult
       findAll().futureValue mustEqual List(entry1)
     }
 
@@ -151,13 +153,13 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       val time1 = clock.instant()
 
       val result1 = repository.addTokens(service1, feature1, 10).futureValue
-      result1 mustEqual UpdateResultResult.UpdateSuccessful
+      result1 mustEqual UpdateSuccessful
 
       clock.fastForwardTime(60)
       val time2 = clock.instant()
       
       val result2 = repository.addTokens(service2, feature2, 190).futureValue
-      result2 mustEqual UpdateResultResult.UpdateSuccessful
+      result2 mustEqual UpdateSuccessful
 
       findAll().futureValue must contain theSameElementsAs List(
         entry1.copy(tokens = 20, lastUpdated = time1),
@@ -169,7 +171,7 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
     "returns a noOp result when there is no service or feature" in {
       val result = repository.addTokens(service1, feature1, 10).futureValue
-      result mustEqual UpdateResultResult.NoOpUpdateResult
+      result mustEqual NoOpUpdateResult
     }
 
     "when the increment is negative and returns a number >=0" in {
@@ -212,7 +214,7 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
   ".stopIssuingTokens" - {
     "set the canIssueTokens field to false" in {
       val entry1 = AllowListMetadata(service1, feature1, 0, true, clock.instant(), clock.instant())
-      val entry2 = AllowListMetadata(service1, feature2, 0, true, clock.instant(), clock.instant())
+      val entry2 = AllowListMetadata(service1, feature2, 0, false, clock.instant(), clock.instant())
 
       Future.sequence(List(entry1, entry2).map(insert)).futureValue
 
@@ -220,24 +222,29 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
       findAll().futureValue must contain theSameElementsAs Seq(entry1, entry2)
 
-      repository.stopIssuingTokens(service1, feature1).futureValue
+      val results = Future.sequence(List(
+        repository.stopIssuingTokens(service1, feature1),
+         repository.stopIssuingTokens(service1, feature2)
+      )).futureValue
+
+      results mustEqual List(UpdateSuccessful, UpdateSuccessful)
 
       findAll().futureValue must contain theSameElementsAs List(
         entry1.copy(canIssueTokens = false, lastUpdated = clock.instant()),
-        entry2
+        entry2.copy(lastUpdated = clock.instant())
       )
     }
 
     "returns a noOp result when there is no matching service and feature" in {
       val result = repository.stopIssuingTokens(service2, feature2).futureValue
-      result mustEqual UpdateResultResult.NoOpUpdateResult
+      result mustEqual NoOpUpdateResult
     }
   }
 
   ".startIssuingTokens" - {
-    "set the canIssueTokens field to false" in {
+    "set the canIssueTokens field to true" in {
       val entry1 = AllowListMetadata(service1, feature1, 0, false, clock.instant(), clock.instant())
-      val entry2 = AllowListMetadata(service1, feature2, 0, false, clock.instant(), clock.instant())
+      val entry2 = AllowListMetadata(service1, feature2, 0, true, clock.instant(), clock.instant())
 
       Future.sequence(List(entry1, entry2).map(insert)).futureValue
 
@@ -245,17 +252,22 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
       clock.fastForwardTime(60)
 
-      repository.startIssuingTokens(service1, feature1).futureValue
+      val results = Future.sequence(List(
+        repository.startIssuingTokens(service1, feature1),
+        repository.startIssuingTokens(service1, feature2)
+      )).futureValue
+
+      results mustEqual List(UpdateSuccessful, UpdateSuccessful)
 
       findAll().futureValue must contain theSameElementsAs List(
         entry1.copy(canIssueTokens = true, lastUpdated = clock.instant()),
-        entry2
+        entry2.copy(lastUpdated = clock.instant())
       )
     }
 
     "returns a noOp result when there is no matching service and feature" in {
       val result = repository.startIssuingTokens(service2, feature2).futureValue
-      result mustEqual UpdateResultResult.NoOpUpdateResult
+      result mustEqual NoOpUpdateResult
     }
   }
 
@@ -271,19 +283,19 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       clock.fastForwardTime(60)
 
       val result1 = repository.issueToken(service1, feature1).futureValue
-      result1 mustEqual UpdateResultResult.UpdateSuccessful
+      result1 mustEqual UpdateSuccessful
 
       clock.fastForwardTime(60)
       val time2 = clock.instant()
 
       val result2 = repository.issueToken(service1, feature1).futureValue
-      result2 mustEqual UpdateResultResult.UpdateSuccessful
+      result2 mustEqual UpdateSuccessful
 
       clock.fastForwardTime(60)
       val time3 = clock.instant()
 
       val result3 = repository.issueToken(service2, feature2).futureValue
-      result3 mustEqual UpdateResultResult.UpdateSuccessful
+      result3 mustEqual UpdateSuccessful
 
       findAll().futureValue must contain theSameElementsAs List(
         entry1.copy(tokens = 8, lastUpdated = time2),
@@ -302,7 +314,7 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       clock.fastForwardTime(60)
 
       val result1 = repository.issueToken(service1, feature1).futureValue
-      result1 mustEqual UpdateResultResult.NoOpUpdateResult
+      result1 mustEqual NoOpUpdateResult
 
       findAll().futureValue must contain theSameElementsAs List(
         entry1,
@@ -319,10 +331,10 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       clock.fastForwardTime(60)
 
       val result1 = repository.issueToken(service1, feature1).futureValue
-      result1 mustEqual UpdateResultResult.NoOpUpdateResult
+      result1 mustEqual NoOpUpdateResult
 
       val result3 = repository.issueToken(service1, feature2).futureValue
-      result3 mustEqual UpdateResultResult.UpdateSuccessful
+      result3 mustEqual UpdateSuccessful
 
       findAll().futureValue must contain theSameElementsAs List(
         entry1,
@@ -332,7 +344,7 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
     "returns a noOp result when there is no matching service and feature" in {
       val result = repository.issueToken(service2, feature2).futureValue
-      result mustEqual UpdateResultResult.NoOpUpdateResult
+      result mustEqual NoOpUpdateResult
     }
   }
 
@@ -348,16 +360,16 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       clock.fastForwardTime(60)
 
       val result1 = repository.setTokens(service1, feature1, 5).futureValue
-      result1 mustEqual UpdateResultResult.UpdateSuccessful
+      result1 mustEqual UpdateSuccessful
 
       val result2 = repository.setTokens(service1, feature2, 100).futureValue
-      result2 mustEqual UpdateResultResult.UpdateSuccessful
+      result2 mustEqual UpdateSuccessful
 
       val result3 = repository.setTokens(service2, feature1, 0).futureValue
-      result3 mustEqual UpdateResultResult.UpdateSuccessful
+      result3 mustEqual UpdateSuccessful
       
       val result4 = repository.setTokens(service2, feature2, 10).futureValue
-      result4 mustEqual UpdateResultResult.UpdateSuccessful
+      result4 mustEqual UpdateSuccessful
 
       findAll().futureValue must contain theSameElementsAs List(
         entry1.copy(tokens = 5, lastUpdated = clock.instant()),
@@ -369,7 +381,7 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
     "returns a noOp result when there is no matching service and feature" in {
       val result = repository.setTokens(service1, feature1, 100).futureValue
-      result mustEqual UpdateResultResult.NoOpUpdateResult
+      result mustEqual NoOpUpdateResult
     }
   }
 

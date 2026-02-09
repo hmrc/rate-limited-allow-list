@@ -17,6 +17,7 @@
 package uk.gov.hmrc.ratelimitedallowlist.utils
 
 
+import java.time.temporal.ChronoUnit
 import java.time.{Clock, Instant, ZoneId}
 
 /**
@@ -34,6 +35,8 @@ class TimeTravelClock(fixedInstant: Instant) extends Clock {
    * Changing time zone is not supported. This returns the clock without changing the time zone.
    */
   override def withZone(zone: ZoneId): Clock = this
+
+  override def instant(): Instant = fixedInstant.plusSeconds(modifiedTime)
 
   def fastForwardTime(seconds: Int): Unit = {
     if (seconds <= 0) {
@@ -53,6 +56,9 @@ class TimeTravelClock(fixedInstant: Instant) extends Clock {
     modifiedTime = 0
   }
 
-  override def instant(): Instant = fixedInstant.plusSeconds(modifiedTime) 
- 
+  def initialInstant(): Instant = fixedInstant
+
 }
+
+object TimeTravelClock:
+  def apply(): TimeTravelClock = new TimeTravelClock(Instant.now.truncatedTo(ChronoUnit.MILLIS))

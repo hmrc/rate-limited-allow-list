@@ -17,8 +17,9 @@
 package uk.gov.hmrc.ratelimitedallowlist.repositories
 
 import play.api.{ConfigLoader, Configuration}
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
 
-case class AllowListMetadataConfigUpdate(service: String, feature: String, tokens: Int, id: String)
+case class AllowListMetadataConfigUpdate(service: Service, feature: Feature, maxUsers: Int)
 
 object AllowListMetadataConfigUpdate:
   import ConfigLoader.*
@@ -27,11 +28,14 @@ object AllowListMetadataConfigUpdate:
     ConfigLoader.apply:
       config => rawPrefix =>
         val prefix = if rawPrefix.nonEmpty then s"$rawPrefix." else rawPrefix
+        val maxUsers = config.getInt(s"${prefix}maxUsers")
+
+        assert(maxUsers >= 0, "Invalid value for maxUsers, must be >0.")
+
         AllowListMetadataConfigUpdate(
-          config.getString(s"${prefix}service"),
-          config.getString(s"${prefix}feature"),
-          config.getInt(s"${prefix}tokens"),
-          config.getString(s"${prefix}id")
+          Service(config.getString(s"${prefix}service")),
+          Feature(config.getString(s"${prefix}feature")),
+          maxUsers,
         )
 
   given ConfigLoader[Seq[AllowListMetadataConfigUpdate]] =

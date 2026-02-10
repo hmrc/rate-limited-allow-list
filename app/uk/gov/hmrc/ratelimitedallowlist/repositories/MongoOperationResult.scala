@@ -21,3 +21,6 @@ enum DeleteResult:
   
 enum UpdateResultResult:
   case UpdateSuccessful, NoOpUpdateResult
+  
+enum CreateResult:
+  case CreateSuccessful, NoOpCreateResult

@@ -17,12 +17,12 @@
 package uk.gov.hmrc.ratelimitedallowlist.repositories
 
 import com.mongodb.MongoException
-import org.mongodb.scala.model.*
+import org.mongodb.scala.bson.{BsonArray, BsonDocument, BsonInt64}
+import org.mongodb.scala.model.{Updates, *}
 import play.api.libs.json.OFormat
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.ratelimitedallowlist.models.Done
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.AllowListMetadata.Field
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.*
 
@@ -30,17 +30,17 @@ import java.time.Clock
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.control.NonFatal
 
 trait AllowListMetadataRepository {
-  def create(service: Service, feature: Feature): Future[Done]
+  def create(service: Service, feature: Feature): Future[CreateResult]
+  def create(service: Service, feature: Feature, canIssueTokens: Boolean): Future[CreateResult]
   def get(service: Service, feature: Feature): Future[Option[AllowListMetadata]]
   def clear(service: Service, feature: Feature): Future[DeleteResult]
-  def addTokens(service: Service, feature: Feature, incrementCount: Int): Future[UpdateResultResult]
+  def addTokens(service: Service, feature: Feature, incrementCount: Long): Future[UpdateResultResult]
   def stopIssuingTokens(service: Service, feature: Feature): Future[UpdateResultResult]
   def startIssuingTokens(service: Service, feature: Feature): Future[UpdateResultResult]
   def issueToken(service: Service, feature: Feature): Future[UpdateResultResult]
-  def setTokens(service: Service, feature: Feature, count: Int): Future[UpdateResultResult]
+  def setTokens(service: Service, feature: Feature, count: Long): Future[UpdateResultResult]
 }
   
 
@@ -70,21 +70,16 @@ class AllowListMetadataRepositoryImpl @Inject()(
     )
   ) with AllowListMetadataRepository with Logging {
 
-  private val allowTokenUpdate: Boolean = config.get[Boolean]("features.allow-config-token-updates")
+  def create(service: Service, feature: Feature): Future[CreateResult] = create(service, feature, false)
 
-  val initCompleted: Future[Done] = onInit()
-
-  def create(service: Service, feature: Feature): Future[Done] =
-    create(service, feature, false)
-  
-  private def create(service: Service, feature: Feature, canIssueTokens: Boolean) = {
-    val entry = AllowListMetadata(service.value, feature.value, 0, canIssueTokens, clock.instant(), clock.instant(), "")
+  def create(service: Service, feature: Feature, canIssueTokens: Boolean): Future[CreateResult] = {
+    val entry = AllowListMetadata(service.value, feature.value, 0, canIssueTokens, clock.instant(), clock.instant())
     collection
       .insertOne(entry)
       .toFuture()
-      .map(_ => Done)
+      .map(_ => CreateResult.CreateSuccessful)
       .recover {
-        case e: MongoException if e.getCode == DuplicateErrorCode => Done
+        case e: MongoException if e.getCode == DuplicateErrorCode => CreateResult.NoOpCreateResult
       }
     
   }
@@ -112,32 +107,40 @@ class AllowListMetadataRepositoryImpl @Inject()(
           else DeleteResult.NoOpDeleteResult
       }
       
-  def addTokens(service: Service, feature: Feature, incrementCount: Int): Future[UpdateResultResult] =
-    if incrementCount > 0 then
-      collection
-        .updateOne(
-          Filters.and(
-            Filters.equal(Field.service, service.value),
-            Filters.equal(Field.feature, feature.value)
-          ),
-          Updates.combine(
-            Updates.inc(Field.tokens, incrementCount),
-            Updates.set(Field.lastUpdated, clock.instant()),
+  def addTokens(service: Service, feature: Feature, incrementCount: Long): Future[UpdateResultResult] =
+    collection
+      .updateOne(
+        Filters.and(
+          Filters.equal(Field.service, service.value),
+          Filters.equal(Field.feature, feature.value)
+        ),
+        List(
+          Updates.set(Field.lastUpdated, clock.instant()),
+          BsonDocument(
+            "$set" -> BsonDocument(
+              Field.tokens -> BsonDocument(
+                "$max" -> BsonArray(
+                  BsonInt64(0),
+                  BsonDocument(
+                    "$add" -> BsonArray(
+                      BsonDocument("$ifNull" -> BsonArray("$"+Field.tokens, BsonInt64(0))),
+                      BsonInt64(incrementCount)
+                    )
+                  )
+                )
+              )
+            )
           )
         )
-        .toFuture()
-        .map {
-          result =>
-            if (result.getModifiedCount == 0) then
-              logger.info(s"Could not add tokens as no matching record for $service and $feature was found.")
-              UpdateResultResult.NoOpUpdateResult
-            else UpdateResultResult.UpdateSuccessful
-        }
-    else
-      logger.info(s"Invalid parameter for tokens, got $incrementCount")
-      Future.failed(IllegalArgumentException(
-        s"Invalid argument for incrementCount. Expected  incrementCount >= 1 got $incrementCount"
-      ))
+      )
+      .toFuture()
+      .map {
+        result =>
+          if (result.getModifiedCount == 0) then
+            logger.info(s"Could not add tokens as no matching record for $service and $feature was found.")
+            UpdateResultResult.NoOpUpdateResult
+          else UpdateResultResult.UpdateSuccessful
+      }
 
   def stopIssuingTokens(service: Service, feature: Feature): Future[UpdateResultResult] =
     collection
@@ -203,7 +206,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
           else UpdateResultResult.UpdateSuccessful
       }
  
-  def setTokens(service: Service, feature: Feature, count: Int): Future[UpdateResultResult] =
+  def setTokens(service: Service, feature: Feature, count: Long): Future[UpdateResultResult] =
     collection
       .updateOne(
         Filters.and(
@@ -223,72 +226,4 @@ class AllowListMetadataRepositoryImpl @Inject()(
             UpdateResultResult.NoOpUpdateResult
           else UpdateResultResult.UpdateSuccessful
       }
-
-
-  private def updateByConfig(config: AllowListMetadataConfigUpdate): Future[Done] = {
-    collection
-      .updateOne(
-        Filters.and(
-          Filters.equal(Field.service, config.service),
-          Filters.equal(Field.feature, config.feature),
-          Filters.notEqual(Field.tokenConfigUpdateId, config.id)
-        ),
-        Updates.combine(
-          Updates.set(Field.tokens, config.tokens),
-          Updates.set(Field.lastUpdated, clock.instant()),
-          Updates.set(Field.tokenConfigUpdateId, config.id)
-        )
-      )
-      .toFuture()
-      .map {
-        result =>
-          if (result.getMatchedCount == 0 || result.getModifiedCount == 0) then {
-            logger.info("Did not update token count")
-            Done
-          } else {
-            logger.info(s"Tokens updated for ${config.service} and ${config.service} to ${config.tokens} for id ${config.id}")
-            Done
-          }
-      }
-  }
-
-  private def createIfMissing(updates: Seq[AllowListMetadataConfigUpdate]): Future[Seq[Done]] = {
-    def doCreate(tokenConfig: AllowListMetadataConfigUpdate): Future[Done] = {
-      val AllowListMetadataConfigUpdate(service, feature, _, _)  = tokenConfig
-      val result = create(Service(service), Feature(feature), canIssueTokens = true)
-      result.onComplete(_ => logger.info(s"Created record for $service and $feature"))
-      result.recover {
-        case NonFatal(e) =>
-          logger.error(s"Could not update record for $service and $feature", e)
-          Done
-      }
-    }
-
-    val servicesFilter = updates.map(update => Filters.and(
-      Filters.equal(Field.service, update.service),
-      Filters.equal(Field.feature, update.feature)
-    ))
-
-    for {
-      results      <- collection.find(Filters.or(servicesFilter: _*)).toFuture()
-      existing     =  results.map(metadata => (metadata.service, metadata.feature)).toSet
-      missing      =  updates.filterNot(update => existing.contains(update.service -> update.feature))
-      createResult =  missing.map(doCreate)
-      result       <- Future.sequence(createResult)
-    } yield result
-  }
-
-  private def onInit(): Future[Done] = {
-    if !allowTokenUpdate then
-      logger.info("Token driven config updates are disabled")
-      Future.successful(Done)
-    else {
-      logger.info("Token driven config updates are enabled")
-      val updates = config.get[Seq[AllowListMetadataConfigUpdate]]("mongodb.collections.allow-list-metadata.token-updates")
-      for
-        _ <- createIfMissing(updates)
-        _ <- Future.sequence(updates.map(updateByConfig))
-      yield Done
-    }
-  }
 }

@@ -55,6 +55,6 @@ class AllowListAdminController @Inject()(
   def addTokens(service: Service, feature: Feature): Action[TokenIncrementRequest] =
     Action.async(parse.json[TokenIncrementRequest]):
       request =>
-        metadata.addTokens(service, feature, request.body.value).map:
+        metadata.addTokens(service, feature, request.body.tokens).map:
           case UpdateSuccessful => NoContent
           case NoOpUpdateResult => NotFound

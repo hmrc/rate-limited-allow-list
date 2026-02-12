@@ -18,7 +18,7 @@ package uk.gov.hmrc.ratelimitedallowlist.models
 
 import play.api.libs.json.{Json, OFormat}
 
-case class TokenIncrementRequest(value: Int)
+case class TokenIncrementRequest(tokens: Int)
 object TokenIncrementRequest:
   given OFormat[TokenIncrementRequest] = Json.format
 

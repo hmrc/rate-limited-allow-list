@@ -34,6 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 trait AllowListMetadataRepository {
   def create(service: Service, feature: Feature): Future[CreateResult]
   def create(service: Service, feature: Feature, canIssueTokens: Boolean): Future[CreateResult]
+  def get(service: Service): Future[Seq[AllowListMetadata]]
   def get(service: Service, feature: Feature): Future[Option[AllowListMetadata]]
   def clear(service: Service, feature: Feature): Future[DeleteResult]
   def addTokens(service: Service, feature: Feature, incrementCount: Long): Future[UpdateResultResult]
@@ -83,7 +84,12 @@ class AllowListMetadataRepositoryImpl @Inject()(
       }
     
   }
-  
+
+  def get(service: Service): Future[Seq[AllowListMetadata]] =
+    collection
+      .find(Filters.equal(Field.service, service.value))
+      .toFuture()
+ 
   def get(service: Service, feature: Feature): Future[Option[AllowListMetadata]] =
     collection.find(
       Filters.and(
@@ -92,7 +98,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
       )
     ).toFuture()
       .map(_.headOption)
-
+ 
   def clear(service: Service, feature: Feature): Future[DeleteResult] =
     collection
       .deleteMany(

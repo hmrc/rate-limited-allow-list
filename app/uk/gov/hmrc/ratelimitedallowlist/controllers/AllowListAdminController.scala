@@ -34,6 +34,12 @@ class AllowListAdminController @Inject()(
   cc: ControllerComponents,
   metadata: AllowListMetadataRepository
 )(using ExecutionContext) extends BackendController(cc), Logging:
+  
+  def getFeatures(service: Service): Action[AnyContent] =
+    Action.async:
+      metadata.get(service).map:
+        case list if list.isEmpty => NotFound
+        case list                 => Ok(Json.toJson(list))
 
   def get(service: Service, feature: Feature): Action[AnyContent] =
     Action.async:

@@ -88,7 +88,24 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
     }
   }
 
-  ".get" - {
+  ".get by service" - {
+    "returns the entry with the matching service and feature" in {
+      val entry1 = AllowListMetadata(service1, feature1, 0, true, clock.instant(), clock.instant())
+      val entry2 = AllowListMetadata(service1, feature2, 0, true, clock.instant(), clock.instant())
+      val entry3 = AllowListMetadata(service2, feature1, 0, true, clock.instant(), clock.instant())
+      val entry4 = AllowListMetadata(service2, feature2, 0, true, clock.instant(), clock.instant())
+
+      Future.sequence(List(entry1, entry2, entry3, entry4).map(insert)).futureValue
+
+      repository.get(service1).futureValue must contain theSameElementsAs List(entry1, entry2)
+    }
+
+    "returns None when there are no matching service and feature" in {
+      repository.get(service1).futureValue mustEqual List.empty
+    }
+  }
+
+  ".get by service and feature" - {
     "returns the entry with the matching service and feature" in {
       val entry1 = AllowListMetadata(service1, feature1, 0, true, clock.instant(), clock.instant())
       val entry2 = AllowListMetadata(service1, feature2, 0, true, clock.instant(), clock.instant())

@@ -37,9 +37,35 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers:
   val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
   val data1 = AllowListMetadata(service.value, feature.value, 10, true, instant, instant)
 
+  "getFeatures" - {
+    val fakeRequest = FakeRequest(routes.AllowListAdminController.getFeatures(service))
+
+    "return 200 when there is data for a service and feature" in {
+      val controller = AllowListAdminController(
+        Helpers.stubControllerComponents(),
+        FakeAllowListMetadataRepository(getByServiceResult = Some(List(data1)))
+      )
+
+      val result = controller.getFeatures(service)(fakeRequest)
+
+      status(result) mustBe Status.OK
+      contentAsJson(result) mustBe Json.arr(Json.toJsObject(data1))
+    }
+
+    "return 400 when there is no data for a service and feature" in {
+      val controller = AllowListAdminController(
+        Helpers.stubControllerComponents(),
+        FakeAllowListMetadataRepository(getByServiceResult = Some(List.empty))
+      )
+
+      val result = controller.getFeatures(service)(fakeRequest)
+
+      status(result) mustBe Status.NOT_FOUND
+    }
+  }
+
   "get" - {
-    val fakeRequest =
-      FakeRequest("GET", routes.AllowListAdminController.get(service, feature).url)
+    val fakeRequest = FakeRequest(routes.AllowListAdminController.get(service, feature))
 
     "return 200 when there is data for a service and feature" in {
       val controller = AllowListAdminController(
@@ -73,8 +99,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers:
           FakeAllowListMetadataRepository(setTokensResult = Some(UpdateSuccessful))
         )
 
-        val fakeRequest =
-          FakeRequest("PATCH", routes.AllowListAdminController.patch(service, feature).url)
+        val fakeRequest =FakeRequest(routes.AllowListAdminController.patch(service, feature))
             .withBody(UpdateRequest.UpdateTokens(20))
         val result = controller.patch(service, feature)(fakeRequest)
 
@@ -87,8 +112,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers:
           FakeAllowListMetadataRepository(startIssuingTokensResult = Some(UpdateSuccessful))
         )
 
-        val fakeRequest =
-          FakeRequest("PATCH", routes.AllowListAdminController.patch(service, feature).url)
+        val fakeRequest =FakeRequest(routes.AllowListAdminController.patch(service, feature))
             .withBody(UpdateRequest.StartIssuingTokens)
         val result = controller.patch(service, feature)(fakeRequest)
 
@@ -101,8 +125,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers:
           FakeAllowListMetadataRepository(stopIssuingTokensResult = Some(UpdateSuccessful))
         )
 
-        val fakeRequest =
-          FakeRequest("PATCH", routes.AllowListAdminController.patch(service, feature).url)
+        val fakeRequest = FakeRequest(routes.AllowListAdminController.patch(service, feature))
             .withBody(UpdateRequest.StopIssuingTokens)
         val result = controller.patch(service, feature)(fakeRequest)
 
@@ -117,8 +140,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers:
           FakeAllowListMetadataRepository(setTokensResult = Some(NoOpUpdateResult))
         )
 
-        val fakeRequest =
-          FakeRequest("PATCH", routes.AllowListAdminController.patch(service, feature).url)
+        val fakeRequest = FakeRequest(routes.AllowListAdminController.patch(service, feature))
             .withBody(UpdateRequest.UpdateTokens(20))
         val result = controller.patch(service, feature)(fakeRequest)
 
@@ -131,8 +153,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers:
           FakeAllowListMetadataRepository(startIssuingTokensResult = Some(NoOpUpdateResult))
         )
 
-        val fakeRequest =
-          FakeRequest("PATCH", routes.AllowListAdminController.patch(service, feature).url)
+        val fakeRequest = FakeRequest(routes.AllowListAdminController.patch(service, feature))
             .withBody(UpdateRequest.StartIssuingTokens)
         val result = controller.patch(service, feature)(fakeRequest)
 
@@ -145,8 +166,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers:
           FakeAllowListMetadataRepository(stopIssuingTokensResult = Some(NoOpUpdateResult))
         )
 
-        val fakeRequest =
-          FakeRequest("PATCH", routes.AllowListAdminController.patch(service, feature).url)
+        val fakeRequest = FakeRequest(routes.AllowListAdminController.patch(service, feature))
             .withBody(UpdateRequest.StopIssuingTokens)
         val result = controller.patch(service, feature)(fakeRequest)
 
@@ -162,8 +182,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers:
         FakeAllowListMetadataRepository(addTokensResult = Some(UpdateSuccessful))
       )
 
-      val fakeRequest =
-        FakeRequest("POST", routes.AllowListAdminController.addTokens(service, feature).url)
+      val fakeRequest = FakeRequest(routes.AllowListAdminController.addTokens(service, feature))
           .withBody(TokenIncrementRequest(10))
       val result = controller.addTokens(service, feature)(fakeRequest)
 
@@ -176,8 +195,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers:
         FakeAllowListMetadataRepository(addTokensResult = Some(NoOpUpdateResult))
       )
 
-      val fakeRequest =
-        FakeRequest("POST", routes.AllowListAdminController.addTokens(service, feature).url)
+      val fakeRequest = FakeRequest(routes.AllowListAdminController.addTokens(service, feature))
           .withBody(TokenIncrementRequest(10))
       val result = controller.addTokens(service, feature)(fakeRequest)
 

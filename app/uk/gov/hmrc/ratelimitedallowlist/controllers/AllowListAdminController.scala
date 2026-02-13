@@ -19,6 +19,8 @@ package uk.gov.hmrc.ratelimitedallowlist.controllers
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.internalauth.client.Predicate.Permission
+import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.ratelimitedallowlist.models.{TokenIncrementRequest, UpdateRequest}
 import uk.gov.hmrc.ratelimitedallowlist.models.UpdateRequest.{StartIssuingTokens, StopIssuingTokens, UpdateTokens}
@@ -32,23 +34,32 @@ import scala.concurrent.ExecutionContext
 @Singleton()
 class AllowListAdminController @Inject()(
   cc: ControllerComponents,
+  auth: BackendAuthComponents,
   metadata: AllowListMetadataRepository
 )(using ExecutionContext) extends BackendController(cc), Logging:
-  
+
+  private def authorised(service: String) =
+    auth.authorizedAction(
+      Permission(
+        Resource.from("rate-limited-allow-list-admin-frontend", service),
+        IAAction("ADMIN")
+      )
+    )
+
   def getFeatures(service: Service): Action[AnyContent] =
-    Action.async:
+    authorised(service.value).async:
       metadata.get(service).map:
         case list if list.isEmpty => NotFound
         case list                 => Ok(Json.toJson(list))
 
   def get(service: Service, feature: Feature): Action[AnyContent] =
-    Action.async:
+    authorised(service.value).async:
       metadata.get(service, feature).map:
         case Some(value) => Ok(Json.toJsObject(value))
         case None        => NotFound
 
   def patch(service: Service, feature: Feature): Action[UpdateRequest] =
-    Action.async(parse.json[UpdateRequest]):
+    authorised(service.value).async(parse.json[UpdateRequest]):
       request =>
         (request.body match
           case UpdateTokens(tokens) => metadata.setTokens(service, feature, tokens)
@@ -59,7 +70,7 @@ class AllowListAdminController @Inject()(
           case NoOpUpdateResult => NotFound
 
   def addTokens(service: Service, feature: Feature): Action[TokenIncrementRequest] =
-    Action.async(parse.json[TokenIncrementRequest]):
+    authorised(service.value).async(parse.json[TokenIncrementRequest]):
       request =>
         metadata.addTokens(service, feature, request.body.tokens).map:
           case UpdateSuccessful => NoContent

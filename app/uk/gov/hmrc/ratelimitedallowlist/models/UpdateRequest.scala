@@ -26,4 +26,4 @@ enum UpdateRequest:
 object UpdateRequest:
   given Reads[UpdateRequest] =
     (__ \ "tokens").read[Int].map(UpdateTokens.apply) orElse
-      (__ \ "canIssueTokens").read[Boolean].map(if _ then StopIssuingTokens else StopIssuingTokens)
+      (__ \ "canIssueTokens").read[Boolean].map(if _ then StartIssuingTokens else StopIssuingTokens)

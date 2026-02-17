@@ -37,4 +37,4 @@ object AllowListMetadata extends MongoJavatimeFormats.Implicits:
     val created = "created"
     val lastUpdated = "lastUpdated"
 
-  val format: OFormat[AllowListMetadata] = Json.format
+  given format: OFormat[AllowListMetadata] = Json.format

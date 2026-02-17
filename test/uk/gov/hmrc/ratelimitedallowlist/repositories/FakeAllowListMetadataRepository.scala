@@ -22,6 +22,7 @@ import scala.concurrent.Future
 
 class FakeAllowListMetadataRepository(createResult: Option[CreateResult] = None,
                                       getResult: Option[Option[AllowListMetadata]] = None,
+                                      getByServiceResult: Option[List[AllowListMetadata]] = None,
                                       clearResult: Option[DeleteResult] = None,
                                       addTokensResult: Option[UpdateResultResult] = None,
                                       stopIssuingTokensResult: Option[UpdateResultResult] = None,
@@ -37,31 +38,34 @@ class FakeAllowListMetadataRepository(createResult: Option[CreateResult] = None,
          |  (2) if this method should not have been invoked then check your implementation""".stripMargin
     )
 
-  def create(service: Service, feature: Feature): Future[CreateResult] =
+  override def create(service: Service, feature: Feature): Future[CreateResult] =
     Future.successful(createResult.getOrElse(throwNotImplemented("create")))
 
-  def create(service: Service, feature: Feature, canIssueTokens: Boolean): Future[CreateResult] =
+  override def create(service: Service, feature: Feature, canIssueTokens: Boolean): Future[CreateResult] =
     Future.successful(createResult.getOrElse(throwNotImplemented("create")))
+    
+  override def get(service: Service): Future[List[AllowListMetadata]] =
+    Future.successful(getByServiceResult.getOrElse(throwNotImplemented("getByService")))
 
-  def get(service: Service, feature: Feature): Future[Option[AllowListMetadata]] =
+  override def get(service: Service, feature: Feature): Future[Option[AllowListMetadata]] =
     Future.successful(getResult.getOrElse(throwNotImplemented("get")))
 
-  def clear(service: Service, feature: Feature): Future[DeleteResult] =
+  override def clear(service: Service, feature: Feature): Future[DeleteResult] =
     Future.successful(clearResult.getOrElse(throwNotImplemented("clear")))
 
-  def addTokens(service: Service, feature: Feature, incrementCount: Long): Future[UpdateResultResult] =
+  override def addTokens(service: Service, feature: Feature, incrementCount: Long): Future[UpdateResultResult] =
     Future.successful(addTokensResult.getOrElse(throwNotImplemented("addTokens")))
     
-  def stopIssuingTokens(service: Service, feature: Feature): Future[UpdateResultResult] =
+  override def stopIssuingTokens(service: Service, feature: Feature): Future[UpdateResultResult] =
     Future.successful(stopIssuingTokensResult.getOrElse(throwNotImplemented("stopIssuingTokens")))
     
-  def startIssuingTokens(service: Service, feature: Feature): Future[UpdateResultResult] =
+  override def startIssuingTokens(service: Service, feature: Feature): Future[UpdateResultResult] =
     Future.successful(startIssuingTokensResult.getOrElse(throwNotImplemented("startIssuingTokens")))
     
-  def issueToken(service: Service, feature: Feature): Future[UpdateResultResult] =
+  override def issueToken(service: Service, feature: Feature): Future[UpdateResultResult] =
     Future.successful(issueTokenResult.getOrElse(throwNotImplemented("issueToken")))
     
-  def setTokens(service: Service, feature: Feature, count: Long): Future[UpdateResultResult] =
+  override def setTokens(service: Service, feature: Feature, count: Long): Future[UpdateResultResult] =
     Future.successful(setTokensResult.getOrElse(throwNotImplemented("setTokens")))
     
 

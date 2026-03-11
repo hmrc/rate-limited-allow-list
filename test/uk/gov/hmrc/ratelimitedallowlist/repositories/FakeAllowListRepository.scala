@@ -19,6 +19,7 @@ package uk.gov.hmrc.ratelimitedallowlist.repositories
 import uk.gov.hmrc.ratelimitedallowlist.models.Done
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
 
+import scala.annotation.unused
 import scala.concurrent.Future
 
 class FakeAllowListRepository(setResult: Option[Done] = None,
@@ -34,18 +35,23 @@ class FakeAllowListRepository(setResult: Option[Done] = None,
          |  (2) if this method should not have been invoked then check your implementation""".stripMargin
     )
 
+  @unused
   def set(service: Service, feature: Feature, value: String): Future[Done] =
     Future.successful(setResult.getOrElse(throwNotImplemented("set")))
 
+  @unused
   def remove(service: Service, feature: Feature, value: String): Future[DeleteResult] =
     Future.successful(removeResult.getOrElse(throwNotImplemented("remove")))
 
+  @unused
   def clear(service: Service, feature: Feature): Future[Done] =
     Future.successful(clearResult.getOrElse(throwNotImplemented("clear")))
 
+  @unused
   def checkExists(service: Service, feature: Feature, value: String): Future[Boolean] =
     Future.successful(checkResult.getOrElse(throwNotImplemented("check")))
 
+  @unused
   def count(service: Service, feature: Feature): Future[Long] =
     Future.successful(countResult.getOrElse(throwNotImplemented("count")))
 }

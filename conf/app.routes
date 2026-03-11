@@ -6,3 +6,4 @@ GET   /services/:service/features                              uk.gov.hmrc.ratel
 GET   /services/:service/features/:feature/metadata            uk.gov.hmrc.ratelimitedallowlist.controllers.AllowListAdminController.get(service: Service, feature: Feature)
 PATCH /services/:service/features/:feature/metadata            uk.gov.hmrc.ratelimitedallowlist.controllers.AllowListAdminController.patch(service: Service, feature: Feature)
 POST  /services/:service/features/:feature/metadata/tokens     uk.gov.hmrc.ratelimitedallowlist.controllers.AllowListAdminController.addTokens(service: Service, feature: Feature)
+GET   /services/:service/features/:feature/report              uk.gov.hmrc.ratelimitedallowlist.controllers.AllowListAdminController.getAllowListReport(service: Service, feature: Feature, queryParams: AllowListReportQueryParams)

@@ -12,7 +12,8 @@ lazy val microservice = Project("rate-limited-allow-list", file("."))
     PlayKeys.playDefaultPort := 11308,
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
     RoutesKeys.routesImport ++= Seq(
-      "uk.gov.hmrc.ratelimitedallowlist.models.domain.*"
+      "uk.gov.hmrc.ratelimitedallowlist.models.domain.*",
+      "uk.gov.hmrc.ratelimitedallowlist.models.*"
     ),
   )
   .settings(

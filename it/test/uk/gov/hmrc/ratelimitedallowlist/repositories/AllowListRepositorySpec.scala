@@ -136,6 +136,10 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
 
       repository.count(service1, feature1).futureValue mustBe 2
     }
+
+    "must return 0 when there is no matching of documents for a given service and feature" in {
+      repository.count(service1, feature1).futureValue mustBe 0
+    }
   }
 
   given Conversion[Service, String] with 

@@ -22,11 +22,11 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.Predicate.Permission
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.ratelimitedallowlist.models.{TokenIncrementRequest, UpdateRequest}
+import uk.gov.hmrc.ratelimitedallowlist.models.{AllowListReportQueryParams, AllowListReportResponse, TokenIncrementRequest, UpdateRequest}
 import uk.gov.hmrc.ratelimitedallowlist.models.UpdateRequest.{StartIssuingTokens, StopIssuingTokens, UpdateTokens}
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
 import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResultResult.*
-import uk.gov.hmrc.ratelimitedallowlist.repositories.AllowListMetadataRepository
+import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListMetadataRepository, AllowListRepository}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
@@ -35,7 +35,8 @@ import scala.concurrent.ExecutionContext
 class AllowListAdminController @Inject()(
   cc: ControllerComponents,
   auth: BackendAuthComponents,
-  metadata: AllowListMetadataRepository
+  metadata: AllowListMetadataRepository,
+  allowList: AllowListRepository
 )(using ExecutionContext) extends BackendController(cc), Logging:
 
   private def authorised(service: String) =
@@ -57,6 +58,15 @@ class AllowListAdminController @Inject()(
       metadata.get(service, feature).map:
         case Some(value) => Ok(Json.toJsObject(value))
         case None        => NotFound
+
+  def getAllowListReport(service: Service,
+                         feature: Feature,
+                         queryParams: AllowListReportQueryParams): Action[AnyContent] =
+    authorised(service.value).async:
+      allowList.count(service, feature).map:
+        count =>
+          val response = AllowListReportResponse(service.value, feature.value, count, List.empty)
+          Ok(Json.toJsObject(response))
 
   def patch(service: Service, feature: Feature): Action[UpdateRequest] =
     authorised(service.value).async(parse.json[UpdateRequest]):

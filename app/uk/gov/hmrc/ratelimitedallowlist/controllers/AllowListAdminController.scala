@@ -22,7 +22,7 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.Predicate.Permission
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.ratelimitedallowlist.models.{AllowListReportQueryParams, AllowListReportResponse, TokenIncrementRequest, UpdateRequest}
+import uk.gov.hmrc.ratelimitedallowlist.models.{AllowListReportQueryParams, AllowListReportResponse, TokenIncrementRequest, UpdateRequest, CreateAllowListRequest}
 import uk.gov.hmrc.ratelimitedallowlist.models.UpdateRequest.{StartIssuingTokens, StopIssuingTokens, UpdateTokens}
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
 import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResultResult.*
@@ -37,24 +37,24 @@ class AllowListAdminController @Inject()(
   auth: BackendAuthComponents,
   metadata: AllowListMetadataRepository,
   allowList: AllowListRepository
-)(using ExecutionContext) extends BackendController(cc), Logging:
+)(using ExecutionContext) extends BackendController(cc), Logging {
 
-  private def authorised(service: String) =
+  private def authorised(service: Service) =
     auth.authorizedAction(
       Permission(
-        Resource.from("rate-limited-allow-list-admin-frontend", service),
+        Resource.from("rate-limited-allow-list-admin-frontend", service.value),
         IAAction("ADMIN")
       )
     )
 
   def getFeatures(service: Service): Action[AnyContent] =
-    authorised(service.value).async:
+    authorised(service).async:
       metadata.get(service).map:
         case list if list.isEmpty => NotFound
         case list                 => Ok(Json.toJson(list))
 
   def get(service: Service, feature: Feature): Action[AnyContent] =
-    authorised(service.value).async:
+    authorised(service).async:
       metadata.get(service, feature).map:
         case Some(value) => Ok(Json.toJsObject(value))
         case None        => NotFound
@@ -62,14 +62,14 @@ class AllowListAdminController @Inject()(
   def getAllowListReport(service: Service,
                          feature: Feature,
                          queryParams: AllowListReportQueryParams): Action[AnyContent] =
-    authorised(service.value).async:
+    authorised(service).async:
       allowList.count(service, feature).map:
         count =>
           val response = AllowListReportResponse(service.value, feature.value, count, List.empty)
           Ok(Json.toJsObject(response))
 
   def patch(service: Service, feature: Feature): Action[UpdateRequest] =
-    authorised(service.value).async(parse.json[UpdateRequest]):
+    authorised(service).async(parse.json[UpdateRequest]):
       request =>
         (request.body match
           case UpdateTokens(tokens) => metadata.setTokens(service, feature, tokens)
@@ -80,8 +80,19 @@ class AllowListAdminController @Inject()(
           case NoOpUpdateResult => NotFound
 
   def addTokens(service: Service, feature: Feature): Action[TokenIncrementRequest] =
-    authorised(service.value).async(parse.json[TokenIncrementRequest]):
+    authorised(service).async(parse.json[TokenIncrementRequest]):
       request =>
         metadata.addTokens(service, feature, request.body.tokens).map:
           case UpdateSuccessful => NoContent
           case NoOpUpdateResult => NotFound
+
+  def create(service: Service): Action[CreateAllowListRequest] =
+    authorised(service).async(parse.json[CreateAllowListRequest]) {
+      request => {
+        metadata.create(service, request.body.allowList).map {
+          _ => Created
+        }
+      }
+    }
+
+}

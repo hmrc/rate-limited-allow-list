@@ -18,22 +18,33 @@ package uk.gov.hmrc.ratelimitedallowlist.models.domain
 
 import play.api.libs.json.Reads
 import play.api.mvc.PathBindable
+import play.api.libs.json.{JsError, JsPath, JsSuccess}
 
 case class Feature(value: String) {
   override def toString: String = value
 }
 
-object Feature:
+object Feature {
   val REGEX_PATTERN = "^[a-zA-Z0-9-]+$"
+
+  def fromString(string: String): Either[String, Feature] =
+    Either.cond(
+      string.matches(REGEX_PATTERN),
+      Feature(string),
+      "Invalid format for a feature"
+    )
 
   given PathBindable[Feature] with
     override def bind(key: String, value: String): Either[String, Feature] =
-      summon[PathBindable[String]]
-        .bind(key, value)
-        .filterOrElse(_.matches(REGEX_PATTERN), "Invalid format for a feature")
-        .map(Feature.apply)
+      summon[PathBindable[String]].bind(key, value).flatMap(fromString)
 
     override def unbind(key: String, value: Feature): String =
       value.value
 
-  given Reads[Feature] = summon[Reads[String]].map(Feature.apply)
+  given Reads[Feature] = 
+    summon[Reads[String]]
+      .map(fromString)
+      .flatMapResult(_.fold(JsError.apply, JsSuccess(_, JsPath())))
+
+}
+

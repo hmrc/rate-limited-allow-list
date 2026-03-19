@@ -17,7 +17,6 @@
 package uk.gov.hmrc.ratelimitedallowlist.models.domain
 
 import play.api.mvc.PathBindable
-import play.api.libs.json.Reads
 
 case class Service(value: String) {
   override def toString: String = value
@@ -35,5 +34,4 @@ object Service:
 
     override def unbind(key: String, value: Service): String =
       value.value
-
-  given Reads[Service] = summon[Reads[String]].map(Service.apply)
+ 

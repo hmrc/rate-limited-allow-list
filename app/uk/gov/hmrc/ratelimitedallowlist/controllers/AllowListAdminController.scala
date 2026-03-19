@@ -17,19 +17,19 @@
 package uk.gov.hmrc.ratelimitedallowlist.controllers
 
 import play.api.Logging
-import play.api.libs.json.Json
+import play.api.libs.json.{JsArray, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.Predicate.Permission
-import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Resource}
+import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Resource, ResourceType, Retrieval}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.ratelimitedallowlist.models.{AllowListReportQueryParams, AllowListReportResponse, TokenIncrementRequest, UpdateRequest, CreateAllowListRequest}
+import uk.gov.hmrc.ratelimitedallowlist.models.{AllowListReportQueryParams, AllowListReportResponse, CreateAllowListRequest, TokenIncrementRequest, UpdateRequest}
 import uk.gov.hmrc.ratelimitedallowlist.models.UpdateRequest.{StartIssuingTokens, StopIssuingTokens, UpdateTokens}
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
 import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResultResult.*
 import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListMetadataRepository, AllowListRepository}
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton()
 class AllowListAdminController @Inject()(
@@ -41,11 +41,30 @@ class AllowListAdminController @Inject()(
 
   private def authorised(service: Service) =
     auth.authorizedAction(
-      Permission(
+      predicate = Permission(
         Resource.from("rate-limited-allow-list-admin-frontend", service.value),
         IAAction("ADMIN")
-      )
+      ),
+      retrieval = Retrieval.locations(Some(ResourceType("rate-limited-allow-list-admin-frontend")))
     )
+    
+  private def authenticated =
+    auth.authenticatedAction(
+      retrieval = Retrieval.locations(Some(ResourceType("rate-limited-allow-list-admin-frontend")))
+    )
+
+  def getServices(): Action[AnyContent] =
+    authenticated.async:
+      req =>
+        val services = req.retrieval.map(_.resourceLocation.value)
+        if services.nonEmpty then
+          metadata.getServices(services.toList).map:
+            services => 
+              Ok(Json.toJson(services.map(_.value)))
+        else {
+          logger.info("No services found. The user likely not added to the GitHub or not added to a team with services.")
+          Future.successful(Ok(Json.toJson(JsArray.empty)))
+        }
 
   def getFeatures(service: Service): Action[AnyContent] =
     authorised(service).async:

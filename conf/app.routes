@@ -2,6 +2,7 @@
 
 POST  /services/:service/features/:feature                     uk.gov.hmrc.ratelimitedallowlist.controllers.AllowListController.checkAllowList(service: Service, feature: Feature)
 
+GET   /services                                                uk.gov.hmrc.ratelimitedallowlist.controllers.AllowListAdminController.getServices()
 POST  /services/:service/allow-lists                           uk.gov.hmrc.ratelimitedallowlist.controllers.AllowListAdminController.create(service: Service)
 GET   /services/:service/features                              uk.gov.hmrc.ratelimitedallowlist.controllers.AllowListAdminController.getFeatures(service: Service)
 GET   /services/:service/features/:feature/metadata            uk.gov.hmrc.ratelimitedallowlist.controllers.AllowListAdminController.get(service: Service, feature: Feature)

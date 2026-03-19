@@ -88,6 +88,59 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
     }
   }
 
+  ".getServices" - {
+    val service3 = Service("service 3")
+    val service4 = Service("service 4")
+
+    "returns all services" in {
+      val entry1 = AllowListMetadata(service1, feature1, 0, true, clock.instant(), clock.instant())
+      val entry2 = AllowListMetadata(service1, feature2, 0, true, clock.instant(), clock.instant())
+      val entry3 = AllowListMetadata(service2, feature1, 0, true, clock.instant(), clock.instant())
+      val entry4 = AllowListMetadata(service2, feature2, 0, true, clock.instant(), clock.instant())
+      val entry5 = AllowListMetadata(service3, feature1, 0, true, clock.instant(), clock.instant())
+      val entry6 = AllowListMetadata(service4, feature1, 0, true, clock.instant(), clock.instant())
+
+      Future.sequence(List(entry1, entry2, entry3, entry4, entry5, entry6).map(insert)).futureValue
+
+      repository.getServices().futureValue must contain theSameElementsAs List(service1, service2, service3, service4)
+    }
+
+    "returns all services that match the filter" in {
+      val entry1 = AllowListMetadata(service1, feature1, 0, true, clock.instant(), clock.instant())
+      val entry2 = AllowListMetadata(service1, feature2, 0, true, clock.instant(), clock.instant())
+      val entry3 = AllowListMetadata(service2, feature1, 0, true, clock.instant(), clock.instant())
+      val entry4 = AllowListMetadata(service2, feature2, 0, true, clock.instant(), clock.instant())
+      val entry5 = AllowListMetadata(service3, feature1, 0, true, clock.instant(), clock.instant())
+      val entry6 = AllowListMetadata(service4, feature1, 0, true, clock.instant(), clock.instant())
+
+      Future.sequence(List(entry1, entry2, entry3, entry4, entry5, entry6).map(insert)).futureValue
+
+      val filter = List(service1, service2).map(_.value)
+
+      repository.getServices(filter).futureValue must contain theSameElementsAs List(service1, service2)
+    }
+
+    "returns an emtpy list when there are are no matching services" - {
+      "when the filter will exclude all matches" in {
+        val entry1 = AllowListMetadata(service1, feature1, 0, true, clock.instant(), clock.instant())
+        val entry2 = AllowListMetadata(service1, feature2, 0, true, clock.instant(), clock.instant())
+        val entry3 = AllowListMetadata(service2, feature1, 0, true, clock.instant(), clock.instant())
+        val entry4 = AllowListMetadata(service2, feature2, 0, true, clock.instant(), clock.instant())
+
+        Future.sequence(List(entry1, entry2, entry3, entry4).map(insert)).futureValue
+
+        val filter = List(service3.value)
+
+        repository.getServices(filter).futureValue must be(empty)
+      }
+
+      "when there are no services" in {
+        repository.getServices().futureValue must be(empty)
+      }
+    }
+  }
+
+
   ".get by service" - {
     "returns the entry with the matching service and feature" in {
       val entry1 = AllowListMetadata(service1, feature1, 0, true, clock.instant(), clock.instant())

@@ -23,6 +23,7 @@ import scala.concurrent.Future
 
 class FakeAllowListMetadataRepository(createResult: Option[CreateResult] = None,
                                       getResult: Option[Option[AllowListMetadata]] = None,
+                                      getServicesResult: Option[Seq[Service]] = None,
                                       getByServiceResult: Option[List[AllowListMetadata]] = None,
                                       clearResult: Option[DeleteResult] = None,
                                       addTokensResult: Option[UpdateResultResult] = None,
@@ -46,6 +47,10 @@ class FakeAllowListMetadataRepository(createResult: Option[CreateResult] = None,
   @unused
   override def create(service: Service, feature: Feature, canIssueTokens: Boolean): Future[CreateResult] =
     Future.successful(createResult.getOrElse(throwNotImplemented("create")))
+ 
+  @unused
+  override def getServices(filterBy: Seq[String]): Future[Seq[Service]] =
+    Future.successful(getServicesResult.getOrElse(throwNotImplemented("getByService")))
 
   @unused
   override def get(service: Service): Future[List[AllowListMetadata]] =
@@ -78,6 +83,5 @@ class FakeAllowListMetadataRepository(createResult: Option[CreateResult] = None,
   @unused
   override def setTokens(service: Service, feature: Feature, count: Long): Future[UpdateResultResult] =
     Future.successful(setTokensResult.getOrElse(throwNotImplemented("setTokens")))
-    
 
 }

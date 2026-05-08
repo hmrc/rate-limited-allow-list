@@ -14,24 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.ratelimitedallowlist.models.domain
+package uk.gov.hmrc.ratelimitedallowlist.models
 
-import play.api.mvc.PathBindable
+import play.api.libs.json.{Json, Reads}
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.Feature
 
-case class Service(value: String) {
-  override def toString: String = value
-}
+case class CreateAllowListRequest(allowList: Feature)
 
-object Service:
-  val REGEX_PATTERN = "^[a-zA-Z0-9-]+$"
-
-  given PathBindable[Service] with
-    override def bind(key: String, value: String): Either[String, Service] =
-      summon[PathBindable[String]]
-        .bind(key, value)
-        .filterOrElse(_.matches(REGEX_PATTERN), "Invalid format for service name")
-        .map(Service.apply)
-
-    override def unbind(key: String, value: Service): String =
-      value.value
- 
+object CreateAllowListRequest:
+  given Reads[CreateAllowListRequest] = Json.reads

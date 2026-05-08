@@ -34,6 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 trait AllowListMetadataRepository {
   def create(service: Service, feature: Feature): Future[CreateResult]
   def create(service: Service, feature: Feature, canIssueTokens: Boolean): Future[CreateResult]
+  def getServices(filterBy: Seq[String]): Future[Seq[Service]]
   def get(service: Service): Future[Seq[AllowListMetadata]]
   def get(service: Service, feature: Feature): Future[Option[AllowListMetadata]]
   def clear(service: Service, feature: Feature): Future[DeleteResult]
@@ -67,13 +68,14 @@ class AllowListMetadataRepositoryImpl @Inject()(
         IndexOptions()
           .name(s"${Field.service}-${Field.feature}-idx")
           .unique(true)
-      )
-    )
+      ),
+    ),
   ) with AllowListMetadataRepository with Logging {
 
-  def create(service: Service, feature: Feature): Future[CreateResult] = create(service, feature, false)
+  override def create(service: Service, feature: Feature): Future[CreateResult] =
+    create(service, feature, false)
 
-  def create(service: Service, feature: Feature, canIssueTokens: Boolean): Future[CreateResult] = {
+  override def create(service: Service, feature: Feature, canIssueTokens: Boolean): Future[CreateResult] = {
     val entry = AllowListMetadata(service.value, feature.value, 0, canIssueTokens, clock.instant(), clock.instant())
     collection
       .insertOne(entry)
@@ -82,15 +84,26 @@ class AllowListMetadataRepositoryImpl @Inject()(
       .recover {
         case e: MongoException if e.getCode == DuplicateErrorCode => CreateResult.NoOpCreateResult
       }
-    
   }
 
-  def get(service: Service): Future[Seq[AllowListMetadata]] =
+  override def getServices(filterBy: Seq[String] = List.empty): Future[Seq[Service]] =
+    if filterBy.isEmpty then
+      collection
+        .distinct[String](Field.service)
+        .toFuture()
+        .map(_.map(Service.apply))
+    else
+      collection
+        .distinct[String](Field.service, Filters.in(Field.service, filterBy*))
+        .toFuture()
+        .map(_.map(Service.apply))
+
+  override def get(service: Service): Future[Seq[AllowListMetadata]] =
     collection
       .find(Filters.equal(Field.service, service.value))
       .toFuture()
  
-  def get(service: Service, feature: Feature): Future[Option[AllowListMetadata]] =
+  override def get(service: Service, feature: Feature): Future[Option[AllowListMetadata]] =
     collection.find(
       Filters.and(
         Filters.equal(Field.service, service.value),
@@ -99,7 +112,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
     ).toFuture()
       .map(_.headOption)
  
-  def clear(service: Service, feature: Feature): Future[DeleteResult] =
+  override def clear(service: Service, feature: Feature): Future[DeleteResult] =
     collection
       .deleteMany(
         Filters.and(
@@ -113,7 +126,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
           else DeleteResult.NoOpDeleteResult
       }
       
-  def addTokens(service: Service, feature: Feature, incrementCount: Long): Future[UpdateResultResult] =
+  override def addTokens(service: Service, feature: Feature, incrementCount: Long): Future[UpdateResultResult] =
     collection
       .updateOne(
         Filters.and(
@@ -148,7 +161,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
           else UpdateResultResult.UpdateSuccessful
       }
 
-  def stopIssuingTokens(service: Service, feature: Feature): Future[UpdateResultResult] =
+  override def stopIssuingTokens(service: Service, feature: Feature): Future[UpdateResultResult] =
     collection
       .updateOne(
         Filters.and(
@@ -170,7 +183,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
             UpdateResultResult.UpdateSuccessful
       }
 
-  def startIssuingTokens(service: Service, feature: Feature): Future[UpdateResultResult] =
+  override def startIssuingTokens(service: Service, feature: Feature): Future[UpdateResultResult] =
     collection
       .updateOne(
         Filters.and(
@@ -191,7 +204,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
           else UpdateResultResult.UpdateSuccessful
       }
  
-  def issueToken(service: Service, feature: Feature): Future[UpdateResultResult] =
+  override def issueToken(service: Service, feature: Feature): Future[UpdateResultResult] =
     collection
       .updateOne(
         Filters.and(
@@ -212,7 +225,7 @@ class AllowListMetadataRepositoryImpl @Inject()(
           else UpdateResultResult.UpdateSuccessful
       }
  
-  def setTokens(service: Service, feature: Feature, count: Long): Future[UpdateResultResult] =
+  override def setTokens(service: Service, feature: Feature, count: Long): Future[UpdateResultResult] =
     collection
       .updateOne(
         Filters.and(

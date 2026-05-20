@@ -5,9 +5,9 @@ This service is intended to reduce the amount of code service teams need to writ
 
 ## How does it work
 
-The service allows you to specify the number of users you want to allow, i.e. the rate, by setting the token limit. A token is consumed if the identifier is not on already on the list and there are still tokens available for your service + feature, the user will be added to this feature for your service. If there are no tokens remaining and the users is not on the list you will get a negative response that you can use in determining where to route the user. 
+The service allows you to specify the number of users you want to allow, i.e. the rate, by setting that limit. When a user's identifier is not on already saved and we are within limits for that allow list, the user will be saved to the list, and a positive response will be returned. If we are at the limit of the number of new users and the user is not on the allow list, a negative response is returned that can be used by the calling service in determining where to route the user. 
 
-You can manage the numbers of tokens over time - add, remove, to control the rate at which users are onboarded. See the section below on [#managing-tokens-for-your-service-and-feature].
+You can manage the numbers of users to onboard over time - add, remove, to control the rate at which users are onboarded via the admin frontend [rate-limited-allow-list-admin-frontend](https://github.com/hmrc/rate-limited-allow-list-admin-frontend). 
 
 ## What it is not
 
@@ -25,48 +25,20 @@ You can manage the numbers of tokens over time - add, remove, to control the rat
 
 Before starting any implementation you should decide upon a stable identifier you will use to identify users. For example, a national insurance number or other identifier retrieved from auth. _This cannot be a value provided by a user themselves_.
 
-You should also decide upon a feature name, which is used to identify a specific list. For example for use in a service named `fake-frontend` for a private beta, you can use the feature name `fake-frontend-private-beta-2026`.
+You should also decide upon the name for the allow list. A service can have multiple allow lists and each will be treated as independent of the other. For example for use in a service named `fake-frontend` for a private beta, you can use the name `fake-frontend-private-beta-2026`.
 
-### 2. Initialise the number of tokens for you service 
+### 2. Create the config for the allow list
 
-In `app-config-<env>`, add your service to the list of other configs in `mongodb.collection.allow-list-metadata.token-updates` (note: this is and array of config values).  See the section on using the config to set the number of tokens.
+Using the admin service, [rate-limited-allow-list-admin-frontend](https://github.com/hmrc/rate-limited-allow-list-admin-frontend) create the allow list.
 
-```yaml
-mongodb.collections.allow-list-metadata.token-updates.0.service: 'fake-frontend'
-mongodb.collections.allow-list-metadata.token-updates.0.feature: 'private-beta-2026'
-mongodb.collections.allow-list-metadata.token-updates.0.maxUsers: 100
-```
+### 3. Add a connector to your service
 
-## Managing tokens for your service and feature
+The service exposes a single endpoint to consuming services - `/rate-limited-allow-list/services/:service/features/:feature` - where service is the name of your service and feature is a name you chose previously. You must add appropriate tests to ensure this functionality works as you expect.
 
-To manage tokens there are 2 options, (1) using the admin service `rate-limited-allow-list-admin-fronted`, (2) updating the config and re-deploying the application. The config driven approach is a fallback that will only be used when the admin service is not available.
+### 4. Managing the number of users for an allow list
 
-### Using the config to set the maximum number of users
+The number of users can be managed in the admin service [rate-limited-allow-list-admin-frontend](https://github.com/hmrc/rate-limited-allow-list-admin-frontend).
 
-- Maximum number of users can be managed by updating the configuration and this will be applied on application start. 
-- `features.allow-config-token-updates` must be `enabled`
-- The structure of the config for you service is seen below.
-
-```
-mongodb {
-    collections {
-        allow-list-metadata {
-            token-updates = [
-                {
-                  service = 'fake-frontend'
-                  feature = 'private-beta-2026'
-                  maxUsers = 100
-                }
-            ]
-        }
-    }
-}
-```
-
-- The service must be the name of the calling service
-- The feature is the value you picked
-- `maxUser` must be set to a value > 0. On deployment this value will be used to update the current token value. For example if there are 10 tokens left and there are 20 users, after this config change is applied, the token value will be 70.
-
-### License
+## License
 
 This code is open source software licensed under the [Apache 2.0 License]("http://www.apache.org/licenses/LICENSE-2.0.html").

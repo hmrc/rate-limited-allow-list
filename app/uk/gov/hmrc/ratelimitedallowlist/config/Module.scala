@@ -20,7 +20,7 @@ import play.api.inject.{Binding, Module as AppModule}
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.ratelimitedallowlist.crypto.{OneWayHash, OneWayHashProvider, ShaOneWayHash}
 import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListRepository, AllowListRepositoryImpl}
-import uk.gov.hmrc.ratelimitedallowlist.services.{AllowListService, AllowListServiceImpl, ConfigUpdatesService}
+import uk.gov.hmrc.ratelimitedallowlist.services.{AllowListService, AllowListServiceImpl}
 import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListMetadataRepository, AllowListMetadataRepositoryImpl}
 
 import java.time.Clock
@@ -37,5 +37,4 @@ class Module extends AppModule:
       bind[AllowListRepository].to[AllowListRepositoryImpl],
       bind[AllowListService].to[AllowListServiceImpl],
       bind[AllowListMetadataRepository].to[AllowListMetadataRepositoryImpl],
-      bind[ConfigUpdatesService].toSelf.eagerly()
     )

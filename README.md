@@ -5,7 +5,7 @@ This service is intended to reduce the amount of code service teams need to writ
 
 ## How does it work
 
-The service allows you to specify the number of users you want to allow, i.e. the rate, by setting that limit. When a user's identifier is not on already saved and we are within limits for that allow list, the user will be saved to the list, and a positive response will be returned. If we are at the limit of the number of new users and the user is not on the allow list, a negative response is returned that can be used by the calling service in determining where to route the user. 
+The service allows you to specify the number of users you want to allow, i.e. the rate, by setting that limit. When a user's identifier is not on already saved and we are within limits for that allow list, the user will be saved to the list, and a positive response will be returned. If we are at the limit of the number of new users and the user is not on the allow list, a negative response is returned that can be used by the calling service in determining where to route the user. Each user record is saved for 30 days.
 
 You can manage the numbers of users to onboard over time - add, remove, to control the rate at which users are onboarded via the admin frontend [rate-limited-allow-list-admin-frontend](https://github.com/hmrc/rate-limited-allow-list-admin-frontend). 
 
@@ -33,11 +33,47 @@ Using the admin service, [rate-limited-allow-list-admin-frontend](https://github
 
 ### 3. Add a connector to your service
 
-The service exposes a single endpoint to consuming services - `/rate-limited-allow-list/services/:service/features/:feature` - where service is the name of your service and feature is a name you chose previously. You must add appropriate tests to ensure this functionality works as you expect.
+The service exposes a [single endpoint](#add-user-to-allow-list) to consuming services where service is the name of your service and feature is a name you chose previously. You must add appropriate tests to ensure this functionality works as you expect.
 
 ### 4. Managing the number of users for an allow list
 
 The number of users can be managed in the admin service [rate-limited-allow-list-admin-frontend](https://github.com/hmrc/rate-limited-allow-list-admin-frontend).
+
+## API 
+
+### Add user to allow list
+
+This endpoint is used to add a user to the allow list. 
+
+**URL:** `/rate-limited-allow-list/services/:service/features/:feature`
+
+**Method:** `POST`
+
+**Data Params:**
+- content-type
+- request body: JSON object
+- Fields
+    - `identifer`
+    - is required: true
+    - type: string
+
+**Success Response:**
+- **Status:** 200 <br/>
+- **Content:**
+    ```json
+    { 
+      "included": true 
+    }
+    ```
+- **Description**:
+    - included is true when the user is added to the list or has been added previously.
+    - included is false when the user limits are reached.
+
+**Error Response:**
+
+- **Status:** 400
+
+- **Description:** This error is returned when an request body is sent.
 
 ## License
 

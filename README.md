@@ -5,7 +5,7 @@ This service is intended to reduce the amount of code service teams need to writ
 
 ## How does it work
 
-The service allows you to specify the number of users you want to allow, i.e. the rate, by setting that limit. When a user's identifier is not on already saved and we are within limits for that allow list, the user will be saved to the list, and a positive response will be returned. If we are at the limit of the number of new users and the user is not on the allow list, a negative response is returned that can be used by the calling service in determining where to route the user. Each user record is saved for 30 days.
+This service allows you to specify the number of users you want to allow, i.e. the rate, by setting that limit. When a user's identifier is not already stored and the total count of users is within the configured limits for that allow list, the user will be added to the list and a positive response will be returned. If the configured limit for new users has already been reached and the user's identifier is not on the allow list, a negative response is returned, indicating to the calling service that they should not allow the user into their service. Currently, an allow list will expire after 30 days. Similarly, a user record will also expire after 30 days, even if the allow list is recreated.
 
 You can manage the numbers of users to onboard over time - add, remove, to control the rate at which users are onboarded via the admin frontend [rate-limited-allow-list-admin-frontend](https://github.com/hmrc/rate-limited-allow-list-admin-frontend). 
 

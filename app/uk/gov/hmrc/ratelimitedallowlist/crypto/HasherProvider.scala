@@ -23,8 +23,6 @@ import javax.inject.{Inject, Provider, Singleton}
 
 @Singleton
 class HasherProvider @Inject()(configuration: Configuration) extends Provider[Hasher] {
-  override def get(): Hasher = {
-    val hashKey = configuration.get[String]("crypto.sha.hashKey")
-    OnewayCryptoFactory.sha(hashKey)
-  }
+  override def get(): Hasher =
+    OnewayCryptoFactory.shaCryptoFromConfig("crypto.sha", configuration.underlying)
 }

@@ -63,7 +63,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
 
       val controller = AllowListAdminController(
         Helpers.stubControllerComponents(),
-        BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
         FakeAllowListMetadataRepository(getServicesResult = Some(List(service))),
         FakeAllowListRepository()
       )
@@ -80,7 +80,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
 
       val controller = AllowListAdminController(
         Helpers.stubControllerComponents(),
-        BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
         FakeAllowListMetadataRepository(getServicesResult = Some(List.empty)),
         FakeAllowListRepository()
       )
@@ -96,7 +96,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
 
       val controller = AllowListAdminController(
         Helpers.stubControllerComponents(),
-        BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
         FakeAllowListMetadataRepository(),
         FakeAllowListRepository()
       )
@@ -119,7 +119,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
 
       val controller = AllowListAdminController(
         Helpers.stubControllerComponents(),
-        BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
         FakeAllowListMetadataRepository(getByServiceResult = Some(List(data1))),
         FakeAllowListRepository()
       )
@@ -136,7 +136,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
 
       val controller = AllowListAdminController(
         Helpers.stubControllerComponents(),
-        BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
         FakeAllowListMetadataRepository(getByServiceResult = Some(List.empty)),
         FakeAllowListRepository()
       )
@@ -150,7 +150,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
       val mockStubBehaviour = mock[StubBehaviour]
       val controller = AllowListAdminController(
         Helpers.stubControllerComponents(),
-        BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
         FakeAllowListMetadataRepository(getByServiceResult = Some(List.empty)),
         FakeAllowListRepository()
       )
@@ -174,7 +174,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
       when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(()))
       val controller = AllowListAdminController(
         Helpers.stubControllerComponents(),
-        BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
         FakeAllowListMetadataRepository(getResult = Some(Some(data1))),
         FakeAllowListRepository()
       )
@@ -190,7 +190,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
       when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(()))
       val controller = AllowListAdminController(
         Helpers.stubControllerComponents(),
-        BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
         FakeAllowListMetadataRepository(getResult = Some(None)),
         FakeAllowListRepository()
       )
@@ -204,7 +204,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
       val mockStubBehaviour = mock[StubBehaviour]
       val controller = AllowListAdminController(
         Helpers.stubControllerComponents(),
-        BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
         FakeAllowListMetadataRepository(),
         FakeAllowListRepository()
       )
@@ -229,7 +229,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
       when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(()))
       val controller = AllowListAdminController(
         Helpers.stubControllerComponents(),
-        BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
         FakeAllowListMetadataRepository(),
         FakeAllowListRepository(countResult = Some(report.currentUserCount))
       )
@@ -247,7 +247,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
       when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(()))
       val controller = AllowListAdminController(
         Helpers.stubControllerComponents(),
-        BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
         FakeAllowListMetadataRepository(),
         FakeAllowListRepository(countResult = Some(0))
       )
@@ -262,7 +262,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
       val mockStubBehaviour = mock[StubBehaviour]
       val controller = AllowListAdminController(
         Helpers.stubControllerComponents(),
-        BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
         FakeAllowListMetadataRepository(),
         FakeAllowListRepository()
       )
@@ -284,7 +284,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
         when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(()))
         val controller = AllowListAdminController(
           Helpers.stubControllerComponents(),
-          BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+          AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
           FakeAllowListMetadataRepository(setTokensResult = Some(UpdateSuccessful)),
         FakeAllowListRepository()
         )
@@ -303,7 +303,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
         when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(()))
         val controller = AllowListAdminController(
           Helpers.stubControllerComponents(),
-          BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+          AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
           FakeAllowListMetadataRepository(startIssuingTokensResult = Some(UpdateSuccessful)),
         FakeAllowListRepository()
         )
@@ -322,7 +322,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
         when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(()))
         val controller = AllowListAdminController(
           Helpers.stubControllerComponents(),
-          BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+          AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
           FakeAllowListMetadataRepository(stopIssuingTokensResult = Some(UpdateSuccessful)),
         FakeAllowListRepository()
         )
@@ -343,7 +343,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
         when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(()))
         val controller = AllowListAdminController(
           Helpers.stubControllerComponents(),
-          BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+          AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
           FakeAllowListMetadataRepository(setTokensResult = Some(NoOpUpdateResult)),
         FakeAllowListRepository()
         )
@@ -362,7 +362,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
         when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(()))
         val controller = AllowListAdminController(
           Helpers.stubControllerComponents(),
-          BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+          AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
           FakeAllowListMetadataRepository(startIssuingTokensResult = Some(NoOpUpdateResult)),
         FakeAllowListRepository()
         )
@@ -381,7 +381,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
         when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(()))
         val controller = AllowListAdminController(
           Helpers.stubControllerComponents(),
-          BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+          AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
           FakeAllowListMetadataRepository(stopIssuingTokensResult = Some(NoOpUpdateResult)),
         FakeAllowListRepository()
         )
@@ -400,7 +400,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
       val mockStubBehaviour = mock[StubBehaviour]
       val controller = AllowListAdminController(
         Helpers.stubControllerComponents(),
-        BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
         FakeAllowListMetadataRepository(),
         FakeAllowListRepository()
       )
@@ -422,7 +422,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
       when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(()))
       val controller = AllowListAdminController(
         Helpers.stubControllerComponents(),
-        BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
         FakeAllowListMetadataRepository(addTokensResult = Some(UpdateSuccessful)),
         FakeAllowListRepository()
       )
@@ -441,7 +441,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
       when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(()))
       val controller = AllowListAdminController(
         Helpers.stubControllerComponents(),
-        BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
         FakeAllowListMetadataRepository(addTokensResult = Some(NoOpUpdateResult)),
         FakeAllowListRepository()
       )
@@ -459,7 +459,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
       val mockStubBehaviour = mock[StubBehaviour]
       val controller = AllowListAdminController(
         Helpers.stubControllerComponents(),
-        BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
         FakeAllowListMetadataRepository(),
         FakeAllowListRepository()
       )
@@ -481,7 +481,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
       when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(()))
       val controller = AllowListAdminController(
         Helpers.stubControllerComponents(),
-        BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
         FakeAllowListMetadataRepository(createResult = Some(CreateSuccessful)),
         FakeAllowListRepository()
       )
@@ -499,7 +499,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
       val mockStubBehaviour = mock[StubBehaviour]
       val controller = AllowListAdminController(
         Helpers.stubControllerComponents(),
-        BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global),
+        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
         FakeAllowListMetadataRepository(),
         FakeAllowListRepository()
       )

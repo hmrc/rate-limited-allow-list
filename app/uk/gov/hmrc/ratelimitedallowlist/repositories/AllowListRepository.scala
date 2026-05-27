@@ -22,9 +22,9 @@ import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListEntry, Feature, 
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.AllowListEntry.Field
 import org.mongodb.scala.model.*
 import play.api.Configuration
+import uk.gov.hmrc.crypto.{Hasher, PlainText}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.ratelimitedallowlist.crypto.OneWayHash
 
 import java.time.Clock
 import java.util.concurrent.TimeUnit
@@ -41,7 +41,7 @@ trait AllowListRepository {
 @Singleton
 class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
                                         config: Configuration,
-                                        oneWayHash: OneWayHash,
+                                        hasher: Hasher,
                                         clock: Clock
                                    )(using ExecutionContext)
   extends PlayMongoRepository[AllowListEntry](
@@ -66,7 +66,8 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
   ) with AllowListRepository {
 
   def set(service: Service, feature: Feature, value: String): Future[Done] = {
-    val entry = AllowListEntry(service.value, feature.value, oneWayHash(value), clock.instant())
+    val hashedValue = hasher.hash(PlainText(value)).value
+    val entry = AllowListEntry(service.value, feature.value, hashedValue, clock.instant())
 
     collection
       .insertOne(entry)
@@ -85,15 +86,17 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
       )).toFuture()
       .map(_ => Done)
 
-  def checkExists(service: Service, feature: Feature, value: String): Future[Boolean] =
+  def checkExists(service: Service, feature: Feature, value: String): Future[Boolean] = {
+    val hashedValue = hasher.hash(PlainText(value)).value
     collection
       .find(Filters.and(
         Filters.equal(Field.service, service.value),
         Filters.equal(Field.feature, feature.value),
-        Filters.equal(Field.hashedValue, oneWayHash(value))
+        Filters.equal(Field.hashedValue, hashedValue)
       ))
       .toFuture()
       .map(_.nonEmpty)
+  }
 
   def count(service: Service, feature: Feature): Future[Long] =
     collection.countDocuments(Filters.and(

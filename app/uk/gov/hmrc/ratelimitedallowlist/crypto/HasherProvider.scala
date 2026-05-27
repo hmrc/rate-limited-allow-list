@@ -17,21 +17,12 @@
 package uk.gov.hmrc.ratelimitedallowlist.crypto
 
 import play.api.Configuration
-import uk.gov.hmrc.crypto.{OnewayCryptoFactory, PlainText}
+import uk.gov.hmrc.crypto.{Hasher, OnewayCryptoFactory}
 
 import javax.inject.{Inject, Provider, Singleton}
 
-trait OneWayHash extends (String => String)
-
-class ShaOneWayHash(hashKey: String) extends OneWayHash:
-  override def apply(v1: String): String =
-    OnewayCryptoFactory
-      .sha(hashKey)
-      .hash(PlainText(v1))
-      .value
- 
 @Singleton
-class OneWayHashProvider @Inject()(configuration: Configuration) extends Provider[ShaOneWayHash]:
-  override def get(): ShaOneWayHash =
-    val hashKey = configuration.get[String]("crypto.sha.hashKey")
-    ShaOneWayHash(hashKey)
+class HasherProvider @Inject()(configuration: Configuration) extends Provider[Hasher] {
+  override def get(): Hasher =
+    OnewayCryptoFactory.shaCryptoFromConfig("crypto.sha", configuration.underlying)
+}

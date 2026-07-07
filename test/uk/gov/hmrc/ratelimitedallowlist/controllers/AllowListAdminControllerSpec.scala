@@ -31,6 +31,8 @@ import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.internalauth.client.Resource
 import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListMetadata, Feature, Service}
+import uk.gov.hmrc.ratelimitedallowlist.models.*
+import uk.gov.hmrc.ratelimitedallowlist.models.request.*
 import uk.gov.hmrc.ratelimitedallowlist.models.request.ScopeLevel
 import uk.gov.hmrc.ratelimitedallowlist.models.*
 import uk.gov.hmrc.ratelimitedallowlist.repositories.CreateResult.CreateSuccessful
@@ -59,7 +61,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
     "permission is admin" - {
       val fakeRequest = FakeRequest("GET", routes.AllowListAdminController.getServices(Some(ScopeLevel.Read)).url)
         .withHeaders("Authorization" -> "Token foo")
-      
+
       "return 200 with list of services when services are found" in {
         val mockStubBehaviour = mock[StubBehaviour]
         when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(resources))
@@ -110,11 +112,11 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
           case _ => fail("Expected but did not get UpstreamErrorResponse")
       }
     }
-    
+
     "permission is read" - {
       val fakeRequest = FakeRequest(routes.AllowListAdminController.getServices(Some(ScopeLevel.Read)))
         .withHeaders("Authorization" -> "Token foo")
- 
+
       "return 200 with list of services when services are found" in {
         val mockStubBehaviour = mock[StubBehaviour]
         when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(resources))
@@ -131,7 +133,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
         status(result) mustBe Status.OK
         contentAsJson(result) mustBe Json.toJson(List(serviceA.value, serviceB.value))
       }
- 
+
       "return 200 with an empty list when there are no services found" in {
         val mockStubBehaviour = mock[StubBehaviour]
         when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(resources))

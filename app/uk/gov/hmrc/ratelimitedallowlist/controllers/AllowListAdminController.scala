@@ -41,7 +41,7 @@ class AllowListAdminController @Inject()(
   def getServices(permission: Option[ScopeLevel] = None): Action[AnyContent] = {
     permission.getOrElse(ScopeLevel.Read) match {
       case ScopeLevel.Admin =>
-        auth.authenticated.admin.locations.async {
+        auth.authenticated.retrieveLocations.admin().async {
           req =>
             val services = req.retrieval.map(_.resourceLocation.value)
             if (services.nonEmpty) {

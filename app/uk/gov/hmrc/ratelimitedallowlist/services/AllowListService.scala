@@ -43,7 +43,7 @@ class AllowListServiceImpl @Inject()(metadata: AllowListMetadataRepository,
           Future.successful(Exists)
         case false =>
           metadata.issueToken(service, feature).flatMap:
-            case NoOpUpdateResult => 
+            case NoOpUpdateResult =>
               logger.debug("Not found, cannot be added")
               Future.successful(Excluded)
             case UpdateSuccessful =>

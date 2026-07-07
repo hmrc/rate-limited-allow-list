@@ -16,19 +16,19 @@
 
 package uk.gov.hmrc.ratelimitedallowlist.controllers
 
-import org.scalatest.matchers.must.Matchers
 import org.scalatest.freespec.AnyFreeSpec
+import org.scalatest.matchers.must.Matchers
 import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
-import uk.gov.hmrc.ratelimitedallowlist.models.{CheckRequest, CheckResponse}
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{Feature, Service}
-import uk.gov.hmrc.ratelimitedallowlist.utils.FakeAllowListService
+import uk.gov.hmrc.ratelimitedallowlist.models.{CheckRequest, CheckResponse}
+import uk.gov.hmrc.ratelimitedallowlist.utils.FakeRateLimitedAllowListService
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class AllowListControllerSpec extends AnyFreeSpec with Matchers:
+class RateLimitedAllowListControllerSpec extends AnyFreeSpec with Matchers:
   private val service = Service("service-a")
   private val feature = Feature("list-1")
   private val fakeRequest =
@@ -37,7 +37,7 @@ class AllowListControllerSpec extends AnyFreeSpec with Matchers:
 
   "POST checkAllowList" - {
     "when checks pass, return 200 with a passing check" in {
-      val controller = AllowListController(Helpers.stubControllerComponents(), FakeAllowListService(true))
+      val controller = RateLimitedAllowListController(Helpers.stubControllerComponents(), FakeRateLimitedAllowListService(true))
 
       val result = controller.checkAllowList(service, feature)(fakeRequest)
 
@@ -46,7 +46,7 @@ class AllowListControllerSpec extends AnyFreeSpec with Matchers:
     }
 
     "when checks fail, return 200 with a failed check" in {
-      val controller = AllowListController(Helpers.stubControllerComponents(), FakeAllowListService(false))
+      val controller = RateLimitedAllowListController(Helpers.stubControllerComponents(), FakeRateLimitedAllowListService(false))
 
       val result = controller.checkAllowList(service, feature)(fakeRequest)
 

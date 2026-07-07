@@ -33,9 +33,9 @@ class AllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFutures:
   private val feature1 = Feature("feature1")
   private val identifier = "identifier value"
 
-  ".checkExists" - {
-    "when checkExists are disabled in configuration" - {
-      "returns false" in {
+  ".checkOrAdd" - {
+    "when disabled in configuration" - {
+      "returns Excluded by default" in {
         val metadataRepository = FakeAllowListMetadataRepository()
         val allowListRepository = FakeAllowListRepository()
         val config = Configuration.from(Map("features.allow-checks" -> "false"))
@@ -46,7 +46,7 @@ class AllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFutures:
     }
 
     "when checks are enabled" - {
-      "returns false" - {
+      "returns Excluded" - {
         "when the metadataRepo does not issues a token and allowListRepo returns false" in {
           val metadataRepository = FakeAllowListMetadataRepository(issueTokenResult = Some(NoOpUpdateResult))
           val allowListRepository = FakeAllowListRepository(checkResult = Some(false))
@@ -57,7 +57,7 @@ class AllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFutures:
         }
       }
 
-      "returns true" - {
+      "returns Added" - {
         "when the metadataRepo issues a token and allowListRepo checkExists returns false" in {
           val metadataRepository = FakeAllowListMetadataRepository(issueTokenResult = Some(UpdateSuccessful))
           val allowListRepository = FakeAllowListRepository(checkResult = Some(false), setResult = Some(Done))
@@ -65,8 +65,10 @@ class AllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFutures:
           val service = AllowListServiceImpl(metadataRepository, allowListRepository, config)
 
           service.checkOrAdd(service1, feature1, identifier).futureValue mustEqual Added
- }
-        
+        }
+      }
+
+      "returns Exists" - {
         "when the allowListRepo returns true" in {
           val metadataRepository = FakeAllowListMetadataRepository()
           val allowListRepository = FakeAllowListRepository(checkResult = Some(true))

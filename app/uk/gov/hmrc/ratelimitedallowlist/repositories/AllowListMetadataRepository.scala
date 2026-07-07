@@ -18,20 +18,20 @@ package uk.gov.hmrc.ratelimitedallowlist.repositories
 
 import com.mongodb.MongoException
 import org.mongodb.scala.bson.{BsonArray, BsonDocument, BsonInt64}
-import org.mongodb.scala.model.{Updates, *}
+import org.mongodb.scala.model.*
 import play.api.libs.json.OFormat
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.AllowListMetadata.Field
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.*
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.AllowListMetadata.Field
 
 import java.time.Clock
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
-trait AllowListMetadataRepository {
+trait AllowListMetadataRepository:
   def create(service: Service, feature: Feature): Future[CreateResult]
   def create(service: Service, feature: Feature, canIssueTokens: Boolean): Future[CreateResult]
   def getServices(filterBy: Seq[String]): Future[Seq[Service]]
@@ -43,7 +43,6 @@ trait AllowListMetadataRepository {
   def startIssuingTokens(service: Service, feature: Feature): Future[UpdateResultResult]
   def issueToken(service: Service, feature: Feature): Future[UpdateResultResult]
   def setTokens(service: Service, feature: Feature, count: Long): Future[UpdateResultResult]
-}
   
 
 @Singleton
@@ -70,21 +69,19 @@ class AllowListMetadataRepositoryImpl @Inject()(
           .unique(true)
       ),
     ),
-  ) with AllowListMetadataRepository with Logging {
+  ) with AllowListMetadataRepository with Logging:
 
   override def create(service: Service, feature: Feature): Future[CreateResult] =
     create(service, feature, false)
 
-  override def create(service: Service, feature: Feature, canIssueTokens: Boolean): Future[CreateResult] = {
+  override def create(service: Service, feature: Feature, canIssueTokens: Boolean): Future[CreateResult] =
     val entry = AllowListMetadata(service.value, feature.value, 0, canIssueTokens, clock.instant(), clock.instant())
     collection
       .insertOne(entry)
       .toFuture()
       .map(_ => CreateResult.CreateSuccessful)
-      .recover {
+      .recover:
         case e: MongoException if e.getCode == DuplicateErrorCode => CreateResult.NoOpCreateResult
-      }
-  }
 
   override def getServices(filterBy: Seq[String] = List.empty): Future[Seq[Service]] =
     if filterBy.isEmpty then
@@ -120,11 +117,10 @@ class AllowListMetadataRepositoryImpl @Inject()(
           Filters.equal(Field.feature, feature.value)
         )
       ).toFuture()
-      .map {
+      .map:
         res =>
-          if (res.getDeletedCount > 0) then DeleteResult.DeleteSuccessful
+          if res.getDeletedCount > 0 then DeleteResult.DeleteSuccessful
           else DeleteResult.NoOpDeleteResult
-      }
       
   override def addTokens(service: Service, feature: Feature, incrementCount: Long): Future[UpdateResultResult] =
     collection
@@ -153,13 +149,12 @@ class AllowListMetadataRepositoryImpl @Inject()(
         )
       )
       .toFuture()
-      .map {
+      .map:
         result =>
-          if (result.getModifiedCount == 0) then
+          if result.getModifiedCount == 0 then
             logger.info(s"Could not add tokens as no matching record for $service and $feature was found.")
             UpdateResultResult.NoOpUpdateResult
           else UpdateResultResult.UpdateSuccessful
-      }
 
   override def stopIssuingTokens(service: Service, feature: Feature): Future[UpdateResultResult] =
     collection
@@ -174,14 +169,13 @@ class AllowListMetadataRepositoryImpl @Inject()(
         )
       )
       .toFuture()
-      .map {
+      .map:
         result =>
-          if (result.getModifiedCount == 0) then
+          if result.getModifiedCount == 0 then
             logger.info(s"Could stop issuing tokens as no matching record for $service and $feature was found.")
             UpdateResultResult.NoOpUpdateResult
           else
             UpdateResultResult.UpdateSuccessful
-      }
 
   override def startIssuingTokens(service: Service, feature: Feature): Future[UpdateResultResult] =
     collection
@@ -196,13 +190,12 @@ class AllowListMetadataRepositoryImpl @Inject()(
         )
       )
       .toFuture()
-      .map {
+      .map:
         result =>
-          if (result.getModifiedCount == 0) then
+          if result.getModifiedCount == 0 then
             logger.info(s"Could start issuing tokens as no matching record for $service and $feature was found.")
             UpdateResultResult.NoOpUpdateResult
           else UpdateResultResult.UpdateSuccessful
-      }
  
   override def issueToken(service: Service, feature: Feature): Future[UpdateResultResult] =
     collection
@@ -219,11 +212,10 @@ class AllowListMetadataRepositoryImpl @Inject()(
         )
       )
       .toFuture()
-      .map {
+      .map:
         result =>
-          if (result.getModifiedCount == 0) then UpdateResultResult.NoOpUpdateResult
+          if result.getModifiedCount == 0 then UpdateResultResult.NoOpUpdateResult
           else UpdateResultResult.UpdateSuccessful
-      }
  
   override def setTokens(service: Service, feature: Feature, count: Long): Future[UpdateResultResult] =
     collection
@@ -238,11 +230,9 @@ class AllowListMetadataRepositoryImpl @Inject()(
         )
       )
       .toFuture()
-      .map {
+      .map:
         result =>
-          if (result.getModifiedCount == 0) then
+          if result.getModifiedCount == 0 then
             logger.info(s"Could not set tokens as no matching record for $service and $feature was found.")
             UpdateResultResult.NoOpUpdateResult
           else UpdateResultResult.UpdateSuccessful
-      }
-}

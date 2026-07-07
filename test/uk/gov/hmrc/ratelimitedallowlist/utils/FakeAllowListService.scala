@@ -14,12 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.ratelimitedallowlist.services
+package uk.gov.hmrc.ratelimitedallowlist.utils
 
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.{CheckResult, Feature, Service}
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowList, CheckResult, Feature, Service}
+import uk.gov.hmrc.ratelimitedallowlist.services.{AllowListService, RateLimitedAllowListService}
 
 import scala.concurrent.Future
 
 class FakeAllowListService(result: Boolean) extends AllowListService:
   override def checkOrAdd(serviceName: Service, listName: Feature, identifier: String): Future[CheckResult] =
+    Future.successful(if result then CheckResult.Exists else CheckResult.Excluded)
+
+class FakeRateLimitedAllowListService(result: Boolean) extends RateLimitedAllowListService:
+  override def checkOrAdd(allowList: AllowList, identifier: String): Future[CheckResult] =
     Future.successful(if result then CheckResult.Exists else CheckResult.Excluded)

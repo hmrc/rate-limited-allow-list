@@ -16,10 +16,20 @@
 
 package uk.gov.hmrc.ratelimitedallowlist.models.domain
 
+import org.mongodb.scala.bson.conversions.Bson
+import org.mongodb.scala.model.Filters
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.time.Instant
+
+case class AllowList(service: Service, feature: Feature):
+  val name = s"$service/$feature"
+
+  val filters: Bson = Filters.and(
+    Filters.equal("service", service.value),
+    Filters.equal("feature", feature.value)
+  )
 
 case class AllowListEntry(service: String, feature: String, hashedValue: String, created: Instant)
 

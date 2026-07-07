@@ -31,7 +31,8 @@ import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResultResult.*
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMongoRepositorySupport[AllowListMetadata], OptionValues, ScalaFutures {
+class AllowListMetadataRepositorySpec
+  extends AnyFreeSpecLike, Matchers, DefaultPlayMongoRepositorySupport[AllowListMetadata], OptionValues, ScalaFutures:
 
   private val config = Configuration.load(Environment.simple())
   private val clock = TimeTravelClock()
@@ -461,4 +462,3 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
   given Conversion[Feature, String] with 
     def apply(x: Feature): String = x.value
-}

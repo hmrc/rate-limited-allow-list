@@ -20,11 +20,10 @@ import play.api.libs.json.Reads
 import play.api.mvc.PathBindable
 import play.api.libs.json.{JsError, JsPath, JsSuccess}
 
-case class Feature(value: String) {
+case class Feature(value: String):
   override def toString: String = value
-}
 
-object Feature {
+object Feature:
   val REGEX_PATTERN = "^[a-zA-Z0-9-]+$"
 
   def fromString(string: String): Either[String, Feature] =
@@ -45,6 +44,3 @@ object Feature {
     summon[Reads[String]]
       .map(fromString)
       .flatMapResult(_.fold(JsError.apply, JsSuccess(_, JsPath())))
-
-}
-

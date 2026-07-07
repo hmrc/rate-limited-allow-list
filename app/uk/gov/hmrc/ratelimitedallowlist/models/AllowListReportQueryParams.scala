@@ -27,15 +27,12 @@ object ReportFrequency:
     override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, ReportFrequency]] =
       summon[QueryStringBindable[String]]
         .bind(key, params)
-        .map {
-          _.flatMap { raw => 
-            Try(ReportFrequency.valueOf(raw)).toEither.left.map(_.getMessage)
-          }
-        }
+        .map:
+          _.flatMap: raw =>
+              Try(ReportFrequency.valueOf(raw)).toEither.left.map(_.getMessage)
 
     override def unbind(key: String, value: ReportFrequency): String =
       summon[QueryStringBindable[String]].unbind(key, value.toString)
-      
 
 
 final case class AllowListReportQueryParams(frequency: ReportFrequency)
@@ -44,13 +41,12 @@ object AllowListReportQueryParams:
 
   given QueryStringBindable[AllowListReportQueryParams] with
     override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, AllowListReportQueryParams]] =
-      for {
+      for
         freq <- summon[QueryStringBindable[ReportFrequency]].bind("frequency", params)
-      } yield {
+      yield
         freq match
           case Right(f) => Right(AllowListReportQueryParams(f))
           case _        => Left("Unable to bind AllowListReportQueryParams")
-      }
 
     override def unbind(key: String, value: AllowListReportQueryParams): String =
       summon[QueryStringBindable[ReportFrequency]].unbind("frequency", value.frequency)

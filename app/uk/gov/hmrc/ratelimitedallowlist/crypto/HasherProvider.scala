@@ -22,7 +22,6 @@ import uk.gov.hmrc.crypto.{Hasher, OnewayCryptoFactory}
 import javax.inject.{Inject, Provider, Singleton}
 
 @Singleton
-class HasherProvider @Inject()(configuration: Configuration) extends Provider[Hasher] {
+class HasherProvider @Inject()(configuration: Configuration) extends Provider[Hasher]:
   override def get(): Hasher =
     OnewayCryptoFactory.shaCryptoFromConfig("crypto.sha", configuration.underlying)
-}

@@ -23,23 +23,21 @@ import uk.gov.hmrc.ratelimitedallowlist.models.domain.Service
 
 import javax.inject.Inject
 
-class AuthActions @Inject() (authComponents: BackendAuthComponents) extends Logging {
+class AuthActions @Inject() (authComponents: BackendAuthComponents) extends Logging:
   private val resourceType = ResourceType("rate-limited-allow-list-admin-frontend")
 
-  object authenticated {
+  object authenticated:
     def apply(): AuthenticatedActionBuilder[Unit, AnyContent] =
       authComponents.authenticatedAction()
 
-    object retrieval {
+    object retrieval:
       def locations(): AuthenticatedActionBuilder[Set[Resource], AnyContent] =
         authComponents.authenticatedAction(
           retrieval = Retrieval.locations(resourceType = Some(resourceType), action = Some(IAAction("ADMIN")))
         )
-    }
-  }
 
-  object authorized {
-    object admin {
+  object authorized:
+    object admin:
       def service(service: Service): AuthenticatedActionBuilder[Unit, AnyContent] =
         authComponents.authorizedAction(
           predicate = Predicate.Permission(
@@ -50,6 +48,3 @@ class AuthActions @Inject() (authComponents: BackendAuthComponents) extends Logg
             IAAction("ADMIN")
           )
         )
-    }
-  }
-}

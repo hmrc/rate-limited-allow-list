@@ -36,7 +36,7 @@ class AllowListAdminController @Inject()(
   auth: AuthActions,
   metadata: AllowListMetadataRepository,
   allowList: AllowListRepository
-)(using ExecutionContext) extends BackendController(cc), Logging {
+)(using ExecutionContext) extends BackendController(cc), Logging:
 
   def getServices(permission: Option[ScopeLevel] = None): Action[AnyContent] = {
     permission.getOrElse(ScopeLevel.Read) match {
@@ -106,6 +106,7 @@ class AllowListAdminController @Inject()(
         }).map {
           case UpdateSuccessful => NoContent
           case NoOpUpdateResult => NotFound
+          case _ => InternalServerError
         }
     }
 
@@ -115,6 +116,7 @@ class AllowListAdminController @Inject()(
         metadata.addTokens(service, feature, request.body.tokens).map {
           case UpdateSuccessful => NoContent
           case NoOpUpdateResult => NotFound
+          case _ => InternalServerError
         }
     }
 

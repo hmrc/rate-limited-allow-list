@@ -38,7 +38,7 @@ class AllowListAdminController @Inject()(
 )(using ExecutionContext) extends BackendController(cc), Logging {
 
   def getServices(): Action[AnyContent] =
-    auth.authenticated.retrieval.locations().async {
+    auth.authenticated.retrieveLocations.admin().async {
       req =>
         val services = req.retrieval.map(_.resourceLocation.value)
         if services.nonEmpty then
@@ -52,7 +52,7 @@ class AllowListAdminController @Inject()(
     }
 
   def getFeatures(service: Service): Action[AnyContent] =
-    auth.authorized.admin.service(service).async {
+    auth.authorized.service(service).async {
       metadata.get(service).map {
         case list if list.isEmpty => NotFound
         case list                 => Ok(Json.toJson(list))
@@ -60,7 +60,7 @@ class AllowListAdminController @Inject()(
     }
 
   def get(service: Service, feature: Feature): Action[AnyContent] =
-    auth.authorized.admin.service(service).async {
+    auth.authorized.service(service).async {
       metadata.get(service, feature).map {
         case Some(value) => Ok(Json.toJsObject(value))
         case None => NotFound
@@ -70,7 +70,7 @@ class AllowListAdminController @Inject()(
   def getAllowListReport(service: Service,
                          feature: Feature,
                          queryParams: AllowListReportQueryParams): Action[AnyContent] =
-    auth.authorized.admin.service(service).async {
+    auth.authorized.service(service).async {
       allowList.count(service, feature).map {
         count =>
           val response = AllowListReportResponse(service.value, feature.value, count, List.empty)

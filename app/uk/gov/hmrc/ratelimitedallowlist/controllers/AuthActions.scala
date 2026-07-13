@@ -30,8 +30,8 @@ class AuthActions @Inject() (authComponents: BackendAuthComponents) extends Logg
     def apply(): AuthenticatedActionBuilder[Unit, AnyContent] =
       authComponents.authenticatedAction()
 
-    object retrieval {
-      def locations(): AuthenticatedActionBuilder[Set[Resource], AnyContent] =
+    object retrieveLocations {
+      def admin(): AuthenticatedActionBuilder[Set[Resource], AnyContent] =
         authComponents.authenticatedAction(
           retrieval = Retrieval.locations(resourceType = Some(resourceType), action = Some(IAAction("ADMIN")))
         )
@@ -39,17 +39,18 @@ class AuthActions @Inject() (authComponents: BackendAuthComponents) extends Logg
   }
 
   object authorized {
+    outer =>
+    
+    private def permission(role: "ADMIN" | "READ", service: Service): Predicate.Permission =
+      Predicate.Permission(Resource(resourceType, ResourceLocation(service.value)), IAAction(role))
+
+    def service(service: Service): AuthenticatedActionBuilder[Unit, AnyContent] = {
+      authComponents.authorizedAction(predicate = Predicate.or(permission("ADMIN", service), permission("READ", service)))
+    }
+
     object admin {
       def service(service: Service): AuthenticatedActionBuilder[Unit, AnyContent] =
-        authComponents.authorizedAction(
-          predicate = Predicate.Permission(
-            Resource(
-              ResourceType("rate-limited-allow-list-admin-frontend"),
-              ResourceLocation(service.value),
-            ),
-            IAAction("ADMIN")
-          )
-        )
+        authComponents.authorizedAction(predicate = permission("ADMIN", service))
     }
   }
 }

@@ -32,6 +32,7 @@ import uk.gov.hmrc.internalauth.client.Resource
 import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
 import uk.gov.hmrc.ratelimitedallowlist.models.*
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.*
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.Timeframe.*
 import uk.gov.hmrc.ratelimitedallowlist.repositories.CreateResult.CreateSuccessful
 import uk.gov.hmrc.ratelimitedallowlist.repositories.DeleteResult.DeleteSuccessful
 import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResult.{NoOpUpdateResult, UpdateFailed, UpdateSuccessful}

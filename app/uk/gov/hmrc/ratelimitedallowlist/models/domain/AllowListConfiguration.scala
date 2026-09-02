@@ -20,7 +20,7 @@ import play.api.libs.json.*
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.ratelimitedallowlist.models.CreateAllowListConfigurationRequest
 
-import java.time.{Clock, Instant}
+import java.time.Instant
 import scala.language.implicitConversions
 
 case class AllowListConfiguration(service: String,
@@ -39,7 +39,7 @@ case class AllowListConfiguration(service: String,
   lazy val asAllowList = AllowList(Service(service), Feature(feature))
 
   def checkUserLoadBalance: Boolean = AllowListConfiguration.percentageCheck(this)
-  
+
   val matchesUpdate: AllowListConfiguration.Update => Boolean = AllowListConfiguration.matchesUpdate(this)
 
 
@@ -51,7 +51,7 @@ object AllowListConfiguration extends MongoJavatimeFormats.Implicits:
     else if config.totalCounter == 0 then true
     else (config.acceptedCounter.toDouble / config.totalCounter * 100) < config.percentageLoad
 
-  def fromRequest(service: Service, request: CreateAllowListConfigurationRequest)(using clock: Clock) = AllowListConfiguration(
+  def fromRequest(service: Service, request: CreateAllowListConfigurationRequest, instant: Instant) = AllowListConfiguration(
     service.value,
     request.feature,
     request.userLimitPerTimeframe,
@@ -60,7 +60,7 @@ object AllowListConfiguration extends MongoJavatimeFormats.Implicits:
     request.percentageLoad,
     0,
     0,
-    clock.instant()
+    instant
   )
 
   private case class ConfigPatch(userLimitPerTimeframe: Option[Int],

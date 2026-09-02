@@ -23,7 +23,8 @@ import play.api.libs.json.OFormat
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowList, AllowListConfiguration, CreateAllowListConfigurationRequest, Service}
+import uk.gov.hmrc.ratelimitedallowlist.models.CreateAllowListConfigurationRequest
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowList, AllowListConfiguration, Service}
 import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResult.{NoOpUpdateResult, UpdateFailed, UpdateSuccessful}
 
 import java.time.Clock

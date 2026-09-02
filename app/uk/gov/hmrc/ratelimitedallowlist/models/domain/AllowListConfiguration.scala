@@ -18,6 +18,7 @@ package uk.gov.hmrc.ratelimitedallowlist.models.domain
 
 import play.api.libs.json.*
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+import uk.gov.hmrc.ratelimitedallowlist.models.CreateAllowListConfigurationRequest
 
 import java.time.{Clock, Instant}
 import scala.language.implicitConversions
@@ -31,19 +32,19 @@ case class AllowListConfiguration(service: String,
                                   private val acceptedCounter: Int = 0,
                                   private val totalCounter: Int = 0,
                                   private val created: Instant):
+
   require(100 >= percentageLoad && percentageLoad >= 0, s"Invalid percentage for $service/$feature: $percentageLoad")
 
   val serviceFeature = s"$service-$feature"
   lazy val asAllowList = AllowList(Service(service), Feature(feature))
 
   def checkUserLoadBalance: Boolean = AllowListConfiguration.percentageCheck(this)
+  
   val matchesUpdate: AllowListConfiguration.Update => Boolean = AllowListConfiguration.matchesUpdate(this)
 
 
 object AllowListConfiguration extends MongoJavatimeFormats.Implicits:
-  given Format[Timeframe] = Timeframe.format
   given format: OFormat[AllowListConfiguration] = Json.format[AllowListConfiguration]
-  given patchFormat: OFormat[Update] = Json.format[ConfigPatch]
 
   private def percentageCheck(config: AllowListConfiguration): Boolean =
     if config.percentageLoad == 0 then false
@@ -80,6 +81,8 @@ object AllowListConfiguration extends MongoJavatimeFormats.Implicits:
 
   opaque type Update = ConfigPatch
   object Update:
+    given patchFormat: OFormat[Update] = Json.format[ConfigPatch]
+
     def apply(userLimitPerTimeframe: Option[Int],
       timeframe: Option[String],
       userLimit: Option[Int],
@@ -93,50 +96,3 @@ object AllowListConfiguration extends MongoJavatimeFormats.Implicits:
     def timeframe: Option[String] = u.timeframe
     def userLimit: Option[Int] = u.userLimit
     def percentageLoad: Option[Int] = u.percentageLoad
-
-
-sealed trait Timeframe(final val bound: String)
-  /** Timeframes for configuring user limits as "N users per T timeframe."
-   *  e.g. 50 users per Hour, 250 users per day, 1000 users per Week.
-   *
-   *  All timeframes will move between UTC+0 (GMT) and UTC+1 (BST) to match
-   *  UK daylight savings time, avoiding off-by-one errors if it is crucial
-   *  that a limit does not begin/end on, for instance, the wrong calendar
-   *  day.
-   *
-   *  hourly    - bounds the limit to the current hour, from HH:00 to HH:59
-   *  daily     - bounds the limit to the current calendar day
-   *  weekdaily - bounds the limit to the current working week
-   *              excluding weekends, e.g. Mon-Fri
-   *  weekly    - bounds the limit to the current week starting on Monday
-   *              and ending on Sunday
-   */
-case object Hourly    extends Timeframe("hourly")
-case object Daily     extends Timeframe("daily")
-case object Weekdaily extends Timeframe("weekdaily")
-case object Weekly    extends Timeframe("weekly")
-case object Unbounded extends Timeframe("unbounded")
-
-object Timeframe:
-  given format: Format[Timeframe] = Format[Timeframe](
-    Reads[Timeframe] {
-      case JsString(Hourly.bound) => JsSuccess(Hourly)
-      case JsString(Daily.bound) => JsSuccess(Daily)
-      case JsString(Weekdaily.bound) => JsSuccess(Weekdaily)
-      case JsString(Weekly.bound) => JsSuccess(Weekly)
-      case JsString(Unbounded.bound) => JsSuccess(Unbounded)
-      case other => JsError(s"Timeframe must be a known JsString value, found: $other")
-    },
-    Writes[Timeframe] { t =>
-      JsString(t.bound)
-    }
-  )
-
-case class CreateAllowListConfigurationRequest(feature: String,
-                                               userLimitPerTimeframe: Int,
-                                               timeframe: Timeframe,
-                                               userLimit: Int,
-                                               percentageLoad: Int)
-object CreateAllowListConfigurationRequest:
-  given Format[Timeframe] = Timeframe.format
-  given format: OFormat[CreateAllowListConfigurationRequest] = Json.format[CreateAllowListConfigurationRequest]

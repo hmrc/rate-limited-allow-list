@@ -68,10 +68,8 @@ class AllowListConfigurationRepositoryImpl @Inject()(
     ),
   ) with AllowListConfigurationRepository with Logging:
 
-  given Clock = applicationClock
-
   override def create(service: Service, request: CreateAllowListConfigurationRequest): Future[CreateResult] = {
-    val configuration = AllowListConfiguration.fromRequest(service, request)
+    val configuration = AllowListConfiguration.fromRequest(service, request, applicationClock.instant())
     collection
       .insertOne(configuration)
       .toFuture()

@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.ratelimitedallowlist.repositories
 
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowList, AllowListConfiguration, AllowListMetadata, CreateAllowListConfigurationRequest, Feature, Service}
+import uk.gov.hmrc.ratelimitedallowlist.models.CreateAllowListConfigurationRequest
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowList, AllowListConfiguration, AllowListMetadata, Feature, Service}
 
 import scala.annotation.unused
 import scala.concurrent.Future

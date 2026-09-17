@@ -19,8 +19,8 @@ package uk.gov.hmrc.ratelimitedallowlist.repositories
 enum DeleteResult:
   case DeleteSuccessful, NoOpDeleteResult
   
-enum UpdateResultResult:
-  case UpdateSuccessful, NoOpUpdateResult
+enum UpdateResult:
+  case UpdateSuccessful, NoOpUpdateResult, UpdateFailed
   
 enum CreateResult:
   case CreateSuccessful, NoOpCreateResult

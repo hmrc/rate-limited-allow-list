@@ -14,7 +14,7 @@ GET    /services/:service/features/:feature/report              uk.gov.hmrc.rate
 POST   /service/:service/feature/:feature                       uk.gov.hmrc.ratelimitedallowlist.controllers.RateLimitedAllowListController.checkAllowList(service: Service, feature: Feature)
 
 # admin routes
-GET    /service                                                 uk.gov.hmrc.ratelimitedallowlist.controllers.RateLimitedAllowListAdminController.getServices()
+GET    /service                                                 uk.gov.hmrc.ratelimitedallowlist.controllers.RateLimitedAllowListAdminController.getServices(permission: Option[ScopeLevel])
 GET    /service/:service                                        uk.gov.hmrc.ratelimitedallowlist.controllers.RateLimitedAllowListAdminController.getAllowLists(service: Service)
 POST   /service/:service                                        uk.gov.hmrc.ratelimitedallowlist.controllers.RateLimitedAllowListAdminController.create(service: Service)
 

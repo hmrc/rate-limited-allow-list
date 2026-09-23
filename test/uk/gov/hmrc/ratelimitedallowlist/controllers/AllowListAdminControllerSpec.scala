@@ -30,11 +30,9 @@ import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.internalauth.client.Resource
 import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
+import uk.gov.hmrc.ratelimitedallowlist.models.*
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListMetadata, Feature, Service}
-import uk.gov.hmrc.ratelimitedallowlist.models.*
 import uk.gov.hmrc.ratelimitedallowlist.models.request.*
-import uk.gov.hmrc.ratelimitedallowlist.models.request.ScopeLevel
-import uk.gov.hmrc.ratelimitedallowlist.models.*
 import uk.gov.hmrc.ratelimitedallowlist.repositories.CreateResult.CreateSuccessful
 import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResult.{NoOpUpdateResult, UpdateSuccessful}
 import uk.gov.hmrc.ratelimitedallowlist.repositories.{FakeAllowListMetadataRepository, FakeAllowListRepository}
@@ -59,7 +57,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
 
   "getServices" - {
     "permission is admin" - {
-      val fakeRequest = FakeRequest("GET", routes.AllowListAdminController.getServices(Some(ScopeLevel.Read)).url)
+      val fakeRequest = FakeRequest("GET", routes.AllowListAdminController.getServices(Some(ScopeLevel.Admin)).url)
         .withHeaders("Authorization" -> "Token foo")
 
       "return 200 with list of services when services are found" in {

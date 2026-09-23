@@ -33,6 +33,7 @@ import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBeha
 import uk.gov.hmrc.ratelimitedallowlist.models.*
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.*
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.Timeframe.*
+import uk.gov.hmrc.ratelimitedallowlist.models.request.ScopeLevel
 import uk.gov.hmrc.ratelimitedallowlist.repositories.CreateResult.CreateSuccessful
 import uk.gov.hmrc.ratelimitedallowlist.repositories.DeleteResult.DeleteSuccessful
 import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResult.{NoOpUpdateResult, UpdateFailed, UpdateSuccessful}
@@ -74,73 +75,116 @@ class RateLimitedAllowListAdminControllerSpec extends AnyFreeSpec, Matchers, Moc
   )
 
   "getServices" - {
-    val fakeRequest = FakeRequest(routes.RateLimitedAllowListAdminController.getServices())
-      .withHeaders("Authorization" -> "Token foo")
+    "permission is admin" - {
+      val fakeRequest = FakeRequest(routes.RateLimitedAllowListAdminController.getServices(Some(ScopeLevel.Admin)))
+        .withHeaders("Authorization" -> "Token foo")
 
-    "return 200 with list of services when services are found" in {
-      val mockStubBehaviour = mock[StubBehaviour]
-      when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(resources))
+      "return 200 with list of services when services are found" in {
+        val mockStubBehaviour = mock[StubBehaviour]
+        when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(resources))
 
-      val controller = RateLimitedAllowListAdminController(
-        Helpers.stubControllerComponents(),
-        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
-        FakeAllowListConfigurationRepository(getServicesResult = Some(List(service))),
-        FakeAllowListRepository()
-      )
+        val controller = RateLimitedAllowListAdminController(
+          Helpers.stubControllerComponents(),
+          AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
+          FakeAllowListConfigurationRepository(getServicesResult = Some(List(service))),
+          FakeAllowListRepository()
+        )
 
-      val result = controller.getServices()(fakeRequest)
+        val result = controller.getServices(Some(ScopeLevel.Admin))(fakeRequest)
 
-      status(result) mustBe Status.OK
-      contentAsJson(result) mustBe Json.arr(Json.toJson(service.value))
+        status(result) mustBe Status.OK
+        contentAsJson(result) mustBe Json.arr(Json.toJson(service.value))
+      }
+
+      "return 200 with an empty array when there are no services found" in {
+        val mockStubBehaviour = mock[StubBehaviour]
+        when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(resources))
+
+        val controller = RateLimitedAllowListAdminController(
+          Helpers.stubControllerComponents(),
+          AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
+          FakeAllowListConfigurationRepository(getServicesResult = Some(List.empty)),
+          FakeAllowListRepository()
+        )
+
+        val result = controller.getServices(Some(ScopeLevel.Admin))(fakeRequest)
+
+        status(result) mustBe Status.OK
+        contentAsJson(result) mustBe JsArray.empty
+      }
+
+      "returns 401 when there is no session" in {
+        val mockStubBehaviour = mock[StubBehaviour]
+
+        val controller = RateLimitedAllowListAdminController(
+          Helpers.stubControllerComponents(),
+          AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
+          FakeAllowListConfigurationRepository(),
+          FakeAllowListRepository()
+        )
+
+        val fakeRequest = FakeRequest(routes.RateLimitedAllowListAdminController.getServices(Some(ScopeLevel.Admin)))
+
+        controller.getServices(Some(ScopeLevel.Admin))(fakeRequest).failed.futureValue match
+          case res: UpstreamErrorResponse => res.statusCode mustEqual 401
+          case _ => fail("Expected but did not get UpstreamErrorResponse")
+      }
     }
 
-    "return 204 when there are no services found in database" in {
-      val mockStubBehaviour = mock[StubBehaviour]
-      when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(resources))
+    "permission is read" - {
+      val fakeRequest = FakeRequest(routes.RateLimitedAllowListAdminController.getServices(Some(ScopeLevel.Read)))
+        .withHeaders("Authorization" -> "Token foo")
 
-      val controller = RateLimitedAllowListAdminController(
-        Helpers.stubControllerComponents(),
-        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
-        FakeAllowListConfigurationRepository(getServicesResult = Some(List.empty)),
-        FakeAllowListRepository()
-      )
+      "return 200 with list of services when services are found" in {
+        val mockStubBehaviour = mock[StubBehaviour]
+        when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(resources))
 
-      val result = controller.getServices()(fakeRequest)
+        val controller = RateLimitedAllowListAdminController(
+          Helpers.stubControllerComponents(),
+          AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
+          FakeAllowListConfigurationRepository(getServicesResult = Some(List(service))),
+          FakeAllowListRepository()
+        )
 
-      status(result) mustBe Status.NOT_FOUND
-    }
+        val result = controller.getServices(Some(ScopeLevel.Read))(fakeRequest)
 
-    "returns 401 when there is no session" in {
-      val mockStubBehaviour = mock[StubBehaviour]
+        status(result) mustBe Status.OK
+        contentAsJson(result) mustBe Json.arr(Json.toJson(service.value))
+      }
 
-      val controller = RateLimitedAllowListAdminController(
-        Helpers.stubControllerComponents(),
-        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
-        FakeAllowListConfigurationRepository(),
-        FakeAllowListRepository()
-      )
+      "return 200 with an empty array when there are no services found" in {
+        val mockStubBehaviour = mock[StubBehaviour]
+        when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(resources))
 
-      val fakeRequest = FakeRequest(routes.RateLimitedAllowListAdminController.getServices())
+        val controller = RateLimitedAllowListAdminController(
+          Helpers.stubControllerComponents(),
+          AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
+          FakeAllowListConfigurationRepository(getServicesResult = Some(List.empty)),
+          FakeAllowListRepository()
+        )
 
-      controller.getServices()(fakeRequest).failed.futureValue match
-        case res: UpstreamErrorResponse => res.statusCode mustEqual 401
-        case _ => fail("Expected but did not get UpstreamErrorResponse")
-    }
+        val result = controller.getServices(Some(ScopeLevel.Read))(fakeRequest)
 
-    "returns 404 when there are no services found for the user" in {
-      val mockStubBehaviour = mock[StubBehaviour]
-      when(mockStubBehaviour.stubAuth(any(), any())).thenReturn(Future.successful(Set()))
+        status(result) mustBe Status.OK
+        contentAsJson(result) mustBe JsArray.empty
+      }
 
-      val controller = RateLimitedAllowListAdminController(
-        Helpers.stubControllerComponents(),
-        AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
-        FakeAllowListConfigurationRepository(),
-        FakeAllowListRepository()
-      )
+      "returns 401 when there is no session" in {
+        val mockStubBehaviour = mock[StubBehaviour]
 
-      val result = controller.getServices()(fakeRequest)
+        val controller = RateLimitedAllowListAdminController(
+          Helpers.stubControllerComponents(),
+          AuthActions(BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)),
+          FakeAllowListConfigurationRepository(),
+          FakeAllowListRepository()
+        )
 
-      status(result) mustBe Status.NO_CONTENT
+        val fakeRequest = FakeRequest(routes.RateLimitedAllowListAdminController.getServices(Some(ScopeLevel.Admin)))
+
+        controller.getServices(Some(ScopeLevel.Read))(fakeRequest).failed.futureValue match
+          case res: UpstreamErrorResponse => res.statusCode mustEqual 401
+          case _ => fail("Expected but did not get UpstreamErrorResponse")
+      }
     }
   }
 

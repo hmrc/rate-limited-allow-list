@@ -26,12 +26,13 @@ import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListMetadata, Featur
 import uk.gov.hmrc.ratelimitedallowlist.repositories.CreateResult.NoOpCreateResult
 import uk.gov.hmrc.ratelimitedallowlist.utils.TimeTravelClock
 import uk.gov.hmrc.ratelimitedallowlist.repositories.DeleteResult.*
-import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResultResult.*
+import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResult.*
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMongoRepositorySupport[AllowListMetadata], OptionValues, ScalaFutures {
+class AllowListMetadataRepositorySpec
+  extends AnyFreeSpecLike, Matchers, DefaultPlayMongoRepositorySupport[AllowListMetadata], OptionValues, ScalaFutures:
 
   private val config = Configuration.load(Environment.simple())
   private val clock = TimeTravelClock()
@@ -257,7 +258,7 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
         repository.addTokens(service1, feature2, -10)
       )).futureValue
 
-      results mustEqual List(UpdateResultResult.UpdateSuccessful, UpdateResultResult.UpdateSuccessful)
+      results mustEqual List(UpdateResult.UpdateSuccessful, UpdateResult.UpdateSuccessful)
 
       findAll().futureValue must contain theSameElementsAs List(
         entry1.copy(tokens = 5, lastUpdated = clock.instant()),
@@ -273,7 +274,7 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
       clock.fastForwardTime(60)
 
       val result = repository.addTokens(service1, feature1, -50).futureValue
-      result mustEqual UpdateResultResult.UpdateSuccessful
+      result mustEqual UpdateResult.UpdateSuccessful
 
       findAll().futureValue must contain theSameElementsAs List(
         entry1.copy(tokens = 0, lastUpdated = clock.instant()),
@@ -461,4 +462,3 @@ class AllowListMetadataRepositorySpec extends AnyFreeSpecLike, Matchers, Default
 
   given Conversion[Feature, String] with 
     def apply(x: Feature): String = x.value
-}

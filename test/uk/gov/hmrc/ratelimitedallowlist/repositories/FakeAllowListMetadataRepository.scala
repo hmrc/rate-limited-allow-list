@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.ratelimitedallowlist.repositories
 
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListMetadata, Feature, Service}
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowList, AllowListConfiguration, AllowListMetadata, CreateAllowListConfigurationRequest, Feature, Service}
 
 import scala.annotation.unused
 import scala.concurrent.Future
@@ -26,14 +26,14 @@ class FakeAllowListMetadataRepository(createResult: Option[CreateResult] = None,
                                       getServicesResult: Option[Seq[Service]] = None,
                                       getByServiceResult: Option[List[AllowListMetadata]] = None,
                                       clearResult: Option[DeleteResult] = None,
-                                      addTokensResult: Option[UpdateResultResult] = None,
-                                      stopIssuingTokensResult: Option[UpdateResultResult] = None,
-                                      startIssuingTokensResult: Option[UpdateResultResult] = None,
-                                      issueTokenResult: Option[UpdateResultResult] = None,
-                                      setTokensResult: Option[UpdateResultResult] = None
+                                      addTokensResult: Option[UpdateResult] = None,
+                                      stopIssuingTokensResult: Option[UpdateResult] = None,
+                                      startIssuingTokensResult: Option[UpdateResult] = None,
+                                      issueTokenResult: Option[UpdateResult] = None,
+                                      setTokensResult: Option[UpdateResult] = None
                                      ) extends AllowListMetadataRepository {
 
-  def throwNotImplemented(method: String) =
+  def throwNotImplemented(method: String): Nothing =
     throw new NotImplementedError(
       s"""FakeAllowListRepository return result not configured for method `$method`. To resolve the either: 
          |  (1) pass a value that should be returned by the implementation, or 
@@ -65,23 +65,67 @@ class FakeAllowListMetadataRepository(createResult: Option[CreateResult] = None,
     Future.successful(clearResult.getOrElse(throwNotImplemented("clear")))
 
   @unused
-  override def addTokens(service: Service, feature: Feature, incrementCount: Long): Future[UpdateResultResult] =
+  override def addTokens(service: Service, feature: Feature, incrementCount: Long): Future[UpdateResult] =
     Future.successful(addTokensResult.getOrElse(throwNotImplemented("addTokens")))
 
   @unused
-  override def stopIssuingTokens(service: Service, feature: Feature): Future[UpdateResultResult] =
+  override def stopIssuingTokens(service: Service, feature: Feature): Future[UpdateResult] =
     Future.successful(stopIssuingTokensResult.getOrElse(throwNotImplemented("stopIssuingTokens")))
 
   @unused
-  override def startIssuingTokens(service: Service, feature: Feature): Future[UpdateResultResult] =
+  override def startIssuingTokens(service: Service, feature: Feature): Future[UpdateResult] =
     Future.successful(startIssuingTokensResult.getOrElse(throwNotImplemented("startIssuingTokens")))
 
   @unused
-  override def issueToken(service: Service, feature: Feature): Future[UpdateResultResult] =
+  override def issueToken(service: Service, feature: Feature): Future[UpdateResult] =
     Future.successful(issueTokenResult.getOrElse(throwNotImplemented("issueToken")))
 
   @unused
-  override def setTokens(service: Service, feature: Feature, count: Long): Future[UpdateResultResult] =
+  override def setTokens(service: Service, feature: Feature, count: Long): Future[UpdateResult] =
     Future.successful(setTokensResult.getOrElse(throwNotImplemented("setTokens")))
 
+}
+
+class FakeAllowListConfigurationRepository(createResult: Option[CreateResult] = None,
+                                           getResult: Option[Option[AllowListConfiguration]] = None,
+                                           getServicesResult: Option[Seq[Service]] = None,
+                                           getByServiceResult: Option[List[AllowListConfiguration]] = None,
+                                           updateResult: Option[UpdateResult] = None,
+                                           updateCounterResult: Option[AllowListConfiguration] = None,
+                                           clearResult: Option[DeleteResult] = None
+                                          ) extends AllowListConfigurationRepository {
+
+  def throwNotImplemented(method: String): Nothing =
+    throw new NotImplementedError(
+      s"""FakeAllowListConfigurationRepository return result not configured for method `$method`. To resolve the either:
+         |  (1) pass a value that should be returned by the implementation, or
+         |  (2) if this method should not have been invoked then check your implementation""".stripMargin
+    )
+
+  @unused
+  def create(service: Service, configuration: CreateAllowListConfigurationRequest): Future[CreateResult] =
+    Future.successful(createResult.getOrElse(throwNotImplemented("create")))
+
+  @unused
+  override def getServices(filterBy: Seq[String]): Future[Seq[Service]] =
+    Future.successful(getServicesResult.getOrElse(throwNotImplemented("getServices")))
+
+  @unused
+  override def get(service: Service): Future[List[AllowListConfiguration]] =
+    Future.successful(getByServiceResult.getOrElse(throwNotImplemented("getByService")))
+
+  @unused
+  override def get(allowList: AllowList): Future[Option[AllowListConfiguration]] =
+    Future.successful(getResult.getOrElse(throwNotImplemented("getByAllowList")))
+
+  @unused
+  override def updateAllowListPercentageCounters(allowList: AllowList, accepted: Boolean): Future[AllowListConfiguration] =
+    Future.successful(updateCounterResult.getOrElse(throwNotImplemented("updateAllowListPercentageCounters")))
+  @unused
+  override def patch(allowList: AllowList, update: AllowListConfiguration.Update): Future[UpdateResult] =
+    Future.successful(updateResult.getOrElse(throwNotImplemented("patchAllowListConfig")))
+
+  @unused
+  override def clear(allowList: AllowList): Future[DeleteResult] =
+    Future.successful(clearResult.getOrElse(throwNotImplemented("clear")))
 }

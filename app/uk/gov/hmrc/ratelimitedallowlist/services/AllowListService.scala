@@ -19,7 +19,7 @@ package uk.gov.hmrc.ratelimitedallowlist.services
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.CheckResult.*
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{CheckResult, Feature, Service}
-import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResultResult.*
+import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResult.*
 import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListMetadataRepository, AllowListRepository}
 
 import javax.inject.Inject
@@ -43,14 +43,13 @@ class AllowListServiceImpl @Inject()(metadata: AllowListMetadataRepository,
           Future.successful(Exists)
         case false =>
           metadata.issueToken(service, feature).flatMap:
-            case NoOpUpdateResult => 
-              logger.debug("Not found, cannot be added")
-              Future.successful(Excluded)
             case UpdateSuccessful =>
               allowList.set(service, feature, identifier)
-                .map:
-                  _ =>
-                    logger.debug("Added")
-                    Added
+                .map: _ =>
+                  logger.debug("Added")
+                  Added
+            case _ =>
+              logger.debug("Not found, cannot be added")
+              Future.successful(Excluded)
     else
       Future.successful(Excluded)

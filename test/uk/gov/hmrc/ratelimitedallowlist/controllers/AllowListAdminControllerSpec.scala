@@ -30,16 +30,15 @@ import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.internalauth.client.Resource
 import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
-import uk.gov.hmrc.ratelimitedallowlist.models.ReportFrequency.daily
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListMetadata, Feature, Service}
 import uk.gov.hmrc.ratelimitedallowlist.models.request.ScopeLevel
-import uk.gov.hmrc.ratelimitedallowlist.models.{AllowListReportQueryParams, AllowListReportResponse, CreateAllowListRequest, TokenIncrementRequest, UpdateRequest}
+import uk.gov.hmrc.ratelimitedallowlist.models.*
 import uk.gov.hmrc.ratelimitedallowlist.repositories.CreateResult.CreateSuccessful
+import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResult.{NoOpUpdateResult, UpdateSuccessful}
 import uk.gov.hmrc.ratelimitedallowlist.repositories.{FakeAllowListMetadataRepository, FakeAllowListRepository}
-import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResultResult.{NoOpUpdateResult, UpdateSuccessful}
 
-import java.time.temporal.ChronoUnit
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -278,7 +277,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
   }
 
   "getFeatureReport" - {
-    val queryParams = AllowListReportQueryParams(daily)
+    val queryParams = AllowListReportQueryParams(ReportFrequency.Daily)
     val url = routes.AllowListAdminController.getAllowListReport(serviceA, feature, queryParams)
     val fakeRequest = FakeRequest(url).withHeaders("Authorization" -> "Token foo")
 

@@ -1,4 +1,3 @@
-import sbt.Keys.libraryDependencies
 import sbt.*
 
 object AppDependencies {

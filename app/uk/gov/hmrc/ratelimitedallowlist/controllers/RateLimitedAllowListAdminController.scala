@@ -22,6 +22,7 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.ratelimitedallowlist.models.*
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.*
+import uk.gov.hmrc.ratelimitedallowlist.models.request.ScopeLevel
 import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResult.*
 import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListConfigurationRepository, AllowListRepository}
 
@@ -43,27 +44,34 @@ class RateLimitedAllowListAdminController @Inject()(
           .map: _ =>
             Created
 
-  def getServices: Action[AnyContent] =
-    auth.authenticated.admin.locations async:
-      req =>
-        val services = req.retrieval.map(_.resourceLocation.value)
-        if services.nonEmpty then
-          allowListConfig.getServices(services.toList).map:
-            case services if services.isEmpty => NotFound
-            case services => Ok(Json.toJson(services.map(_.value)))
-        else
-          logger.info("No services found for user. The user likely not added to the GitHub or not added to a team with services.")
-          Future.successful(NoContent)
+  def getServices(permission: Option[ScopeLevel] = None): Action[AnyContent] =
+    permission.getOrElse(ScopeLevel.Read) match
+      case ScopeLevel.Admin =>
+        auth.authenticated.retrieveLocations.admin().async:
+          req =>
+            val services = req.retrieval.map(_.resourceLocation.value)
+            if services.nonEmpty then
+              allowListConfig.getServices(services.toList).map:
+                services => Ok(Json.toJson(services.map(_.value)))
+            else
+              logger.info("No services found for user. The user likely not added to the GitHub or not added to a team with services.")
+              Future.successful(NoContent)
+      case ScopeLevel.Read =>
+        auth.authenticated().async:
+          allowListConfig.getServices(List.empty).map:
+            services =>
+              logger.info("No services found. There are no active allow lists.")
+              Ok(Json.toJson(services.map(_.value)))
 
   def getAllowLists(service: Service): Action[AnyContent] =
-    auth.authorized.admin.service(service) async:
+    auth.authorized.admin.service(service).async:
       allowListConfig.get(service)
         .map:
           case list if list.isEmpty => NotFound
           case list                 => Ok(Json.toJson(list))
 
   def get(service: Service, feature: Feature): Action[AnyContent] =
-    auth.authorized.admin.service(service) async:
+    auth.authorized.admin.service(service).async:
       allowListConfig.get(AllowList(service, feature))
         .map:
           case Some(value) => Ok(Json.toJsObject(value))

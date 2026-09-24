@@ -23,7 +23,8 @@ import org.scalatest.matchers.must.Matchers
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.crypto.{Hasher, Scrambled}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListConfiguration, AllowListEntry, Daily, Feature, Hourly, Service, Timeframe, Unbounded, Weekdaily, Weekly}
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListConfiguration, AllowListEntry, Feature, Service, Timeframe }
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.Timeframe.*
 
 import java.time.temporal.ChronoUnit
 import java.time.temporal.ChronoUnit.{DAYS, HOURS}

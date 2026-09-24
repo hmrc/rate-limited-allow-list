@@ -22,7 +22,7 @@ import org.scalatest.matchers.must.Matchers
 import play.api.Configuration
 import uk.gov.hmrc.ratelimitedallowlist.models.Done
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.CheckResult.{Added, Excluded, Exists}
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.Daily
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.Timeframe.Daily
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowList, AllowListConfiguration, Feature, Service}
 import uk.gov.hmrc.ratelimitedallowlist.repositories.{FakeAllowListConfigurationRepository, FakeAllowListRepository}
 

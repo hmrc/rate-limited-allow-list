@@ -143,7 +143,7 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
     def testConfig(timeframe: Timeframe = Daily) = AllowListConfiguration(
       service = service1.value,
       feature = feature1.value,
-      userLimit = 20,
+      userLimit = Some(20),
       userLimitPerTimeframe = 5,
       timeframe = timeframe.bound,
       percentageLoad = 100,

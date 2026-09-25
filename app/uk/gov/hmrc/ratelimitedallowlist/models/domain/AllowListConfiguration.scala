@@ -27,7 +27,7 @@ case class AllowListConfiguration(service: String,
                                   feature: String,
                                   userLimitPerTimeframe: Int,
                                   timeframe: String,
-                                  userLimit: Int,
+                                  userLimit: Option[Int] = None,
                                   percentageLoad: Int,
                                   private val acceptedCounter: Int = 0,
                                   private val totalCounter: Int = 0,
@@ -76,7 +76,7 @@ object AllowListConfiguration extends MongoJavatimeFormats.Implicits:
   private def matchesUpdate(config: AllowListConfiguration)(update: Update): Boolean =
     update.userLimitPerTimeframe.forall(_ == config.userLimitPerTimeframe) &&
     update.timeframe.forall(_ == config.timeframe) &&
-    update.userLimit.forall(_ == config.userLimit) &&
+    update.userLimit.flatMap { update => config.userLimit.map(_ == update) }.getOrElse(true) &&
     update.percentageLoad.forall(_ == config.percentageLoad)
 
   opaque type Update = ConfigPatch

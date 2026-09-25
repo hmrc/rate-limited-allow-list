@@ -56,7 +56,7 @@ class RateLimitedAllowListAdminControllerSpec extends AnyFreeSpec, Matchers, Moc
     feature = feature.value,
     userLimitPerTimeframe = 10,
     timeframe = Daily.bound,
-    userLimit = 100,
+    userLimit = Some(100),
     percentageLoad = 20,
     created = clock.instant()
   )
@@ -65,7 +65,7 @@ class RateLimitedAllowListAdminControllerSpec extends AnyFreeSpec, Matchers, Moc
     feature = feature.value,
     userLimitPerTimeframe = 10,
     timeframe = Daily,
-    userLimit = 100,
+    userLimit = Some(100),
     percentageLoad = 0
   )
   

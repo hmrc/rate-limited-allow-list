@@ -52,7 +52,7 @@ class AllowListConfigurationRepositorySpec
     feature = f,
     userLimitPerTimeframe = 0,
     timeframe = Daily,
-    userLimit = 0,
+    userLimit = Some(0),
     percentageLoad = 0
   )
 
@@ -61,7 +61,7 @@ class AllowListConfigurationRepositorySpec
     feature = f,
     userLimitPerTimeframe = 0,
     timeframe = Daily.bound,
-    userLimit = 0,
+    userLimit = Some(0),
     percentageLoad = 0,
     created = now
   )
@@ -276,7 +276,7 @@ class AllowListConfigurationRepositorySpec
           val originalData = repository.get(AllowList(Service(serviceScenario), Feature(featureScenario))).futureValue.get
           originalData.userLimitPerTimeframe mustBe 0
           originalData.timeframe mustBe Daily.bound
-          originalData.userLimit mustBe 0
+          originalData.userLimit mustBe Some(0)
           originalData.percentageLoad mustBe 0
 
           val result: UpdateResult = repository.patch(
@@ -294,7 +294,7 @@ class AllowListConfigurationRepositorySpec
           else updatedData.timeframe mustBe originalData.timeframe
 
           if newUserLimit.isDefined
-          then updatedData.userLimit mustBe newUserLimit.get
+          then updatedData.userLimit mustBe newUserLimit
           else updatedData.userLimit mustBe originalData.userLimit
 
           if newPercentageLoad.isDefined

@@ -45,7 +45,7 @@ The number of users can be managed in the admin service [rate-limited-allow-list
 
 This endpoint is used to add a user to the allow list. 
 
-**URL:** `/rate-limited-allow-list/services/:service/features/:feature`
+**URL:** `/rate-limited-allow-list/services/:service/allow-list/:allowList`
 
 **Method:** `POST`
 

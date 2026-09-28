@@ -23,12 +23,12 @@ import org.scalatest.matchers.must.Matchers
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.crypto.{Hasher, Scrambled}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListConfiguration, AllowListEntry, Feature, Service, Timeframe }
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListConfiguration, AllowListEntry, Feature, Service, Timeframe}
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.Timeframe.*
 
 import java.time.temporal.ChronoUnit
 import java.time.temporal.ChronoUnit.{DAYS, HOURS}
-import java.time.{Clock, Instant, ZoneId}
+import java.time.{Clock, Instant, LocalDateTime, ZoneId, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Random
@@ -36,7 +36,10 @@ import scala.util.Random
 class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMongoRepositorySupport[AllowListEntry], OptionValues, ScalaFutures:
 
   private val config = Configuration.load(Environment.simple())
-  private val fixedInstant = Instant.now.truncatedTo(ChronoUnit.MILLIS)
+  private val fixedInstant =
+    LocalDateTime.parse("2026-09-29T14:30:00")
+      .toInstant(ZoneOffset.ofHours(0))
+      .truncatedTo(ChronoUnit.MILLIS)
   private val clock = UkTime(Clock.fixed(fixedInstant, ZoneId.systemDefault()))
 
   override protected val repository: AllowListRepositoryImpl =

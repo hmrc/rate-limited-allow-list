@@ -22,7 +22,7 @@ import uk.gov.hmrc.ratelimitedallowlist.models.domain.Timeframe
 case class CreateAllowListConfigurationRequest(feature: String,
                                                userLimitPerTimeframe: Int,
                                                timeframe: Timeframe,
-                                               userLimit: Int,
+                                               userLimit: Option[Int],
                                                percentageLoad: Int)
 object CreateAllowListConfigurationRequest:
   given OFormat[CreateAllowListConfigurationRequest] = Json.format

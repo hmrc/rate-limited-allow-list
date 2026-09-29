@@ -38,7 +38,7 @@ class RateLimitedAllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFuture
     feature = feature1.value,
     userLimitPerTimeframe = 3,
     timeframe = Daily.bound,
-    userLimit = 15,
+    userLimit = Some(15),
     percentageLoad = 50,
     created = Instant.now
   )
@@ -122,7 +122,8 @@ class RateLimitedAllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFuture
         "when the percentage balancer in configuration accepts the user and they aren't preexisting" in :
           List(
             allowListConfig1.copy(acceptedCounter = 0, totalCounter = 0, percentageLoad = 1),
-            allowListConfig1.copy(acceptedCounter = 8, totalCounter = 10, percentageLoad = 81)
+            allowListConfig1.copy(acceptedCounter = 8, totalCounter = 10, percentageLoad = 81),
+            allowListConfig1.copy(acceptedCounter = 10000, totalCounter = 100000, percentageLoad = 99, userLimit = None)
           ).foreach { testConfig =>
             val configurationRepository = FakeAllowListConfigurationRepository(
               getResult = Some(Some(testConfig)),

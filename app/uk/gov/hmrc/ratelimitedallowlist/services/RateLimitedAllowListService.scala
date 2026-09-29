@@ -59,7 +59,7 @@ class RateLimitedAllowListServiceImpl @Inject()(allowListConfiguration: AllowLis
         .flatMap:
           (withinTimeframe, total) =>
             if
-              total < config.userLimit &&
+              config.userLimit.forall(_ > total) &&
               withinTimeframe < config.userLimitPerTimeframe
             then
               allowedUsers.set(Service(config.service), Feature(config.feature), user)

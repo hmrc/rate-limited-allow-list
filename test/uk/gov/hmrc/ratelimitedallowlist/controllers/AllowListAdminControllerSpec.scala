@@ -277,7 +277,7 @@ class AllowListAdminControllerSpec extends AnyFreeSpec, Matchers, MockitoSugar, 
   }
 
   "getFeatureReport" - {
-    val queryParams = AllowListReportQueryParams(ReportFrequency.Daily)
+    val queryParams = AllowListReportQueryParams(ReportFrequency.daily)
     val url = routes.AllowListAdminController.getAllowListReport(serviceA, feature, queryParams)
     val fakeRequest = FakeRequest(url).withHeaders("Authorization" -> "Token foo")
 

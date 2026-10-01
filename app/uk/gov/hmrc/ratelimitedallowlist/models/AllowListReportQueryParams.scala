@@ -21,7 +21,7 @@ import play.api.mvc.QueryStringBindable
 import scala.util.Try
 
 enum ReportFrequency:
-  case Daily, weekly
+  case daily, weekly
 object ReportFrequency:
   given QueryStringBindable[ReportFrequency] with
     override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, ReportFrequency]] =

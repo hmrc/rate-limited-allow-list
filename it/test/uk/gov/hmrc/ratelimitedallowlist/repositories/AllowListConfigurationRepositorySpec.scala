@@ -63,8 +63,16 @@ class AllowListConfigurationRepositorySpec
     timeframe = Daily.bound,
     userLimit = Some(0),
     percentageLoad = 0,
-    created = now
+    created = now,
+    lastUpdated = now,
+    acceptedCounter = 0,
+    totalCounter = 0
   )
+
+  override def afterEach(): Unit = {
+    clock.resetTimeTravel()
+    super.afterEach()
+  }
 
   ".create" - {
     "must save an entry that does not already exist in the repository and set values to initialised values" in:
@@ -230,6 +238,8 @@ class AllowListConfigurationRepositorySpec
       ).futureValue
 
       result mustEqual NoOpUpdateResult
+      val sadf = findAll().futureValue.head
+      sadf.lastUpdated mustEqual now
 
     "must return NoOp when no existing allow list found" in :
       val entry1 = allowListConfiguration(service2, feature2)
@@ -252,12 +262,15 @@ class AllowListConfigurationRepositorySpec
 
       findAll().futureValue must contain theSameElementsAs Seq(entry1)
 
+      clock.fastForwardTime(60)
+
       val result: UpdateResult = repository.patch(
         AllowList(Service(service1), Feature(feature1)),
         AllowListConfiguration.Update(Some(1), None, None, None)
       ).futureValue
 
       result mustEqual UpdateSuccessful
+      findAll().futureValue.head.lastUpdated mustEqual now.plusSeconds(60)
 
     "must return UpdateSuccessful when updating all combinations of updates" in :
       List(

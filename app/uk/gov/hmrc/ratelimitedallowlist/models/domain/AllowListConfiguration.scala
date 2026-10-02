@@ -29,70 +29,77 @@ case class AllowListConfiguration(service: String,
                                   timeframe: String,
                                   userLimit: Option[Int] = None,
                                   percentageLoad: Int,
-                                  private val acceptedCounter: Int = 0,
-                                  private val totalCounter: Int = 0,
-                                  private val created: Instant):
+                                  created: Instant,
+                                  lastUpdated: Instant,
+                                  private val acceptedCounter: Int,
+                                  private val totalCounter: Int):
 
   require(100 >= percentageLoad && percentageLoad >= 0, s"Invalid percentage for $service/$feature: $percentageLoad")
 
   val serviceFeature = s"$service-$feature"
   lazy val asAllowList = AllowList(Service(service), Feature(feature))
 
-  def checkUserLoadBalance: Boolean = AllowListConfiguration.percentageCheck(this)
+  def checkUserLoadBalance: Boolean = {
+    if percentageLoad == 0 then false
+    else if totalCounter == 0 then true
+    else (acceptedCounter.toDouble / totalCounter * 100) < percentageLoad
+  }
 
-  val matchesUpdate: AllowListConfiguration.Update => Boolean = AllowListConfiguration.matchesUpdate(this)
+  def matchesUpdate(update: AllowListConfiguration.Update): Boolean =
+    update.userLimitPerTimeframe.forall(_ == userLimitPerTimeframe) &&
+      update.timeframe.forall(_ == timeframe) &&
+      update.userLimit.flatMap { update => userLimit.map(_ == update) }.getOrElse(true) &&
+      update.percentageLoad.forall(_ == percentageLoad)
 
 
 object AllowListConfiguration extends MongoJavatimeFormats.Implicits:
   given format: OFormat[AllowListConfiguration] = Json.format[AllowListConfiguration]
 
-  private def percentageCheck(config: AllowListConfiguration): Boolean =
-    if config.percentageLoad == 0 then false
-    else if config.totalCounter == 0 then true
-    else (config.acceptedCounter.toDouble / config.totalCounter * 100) < config.percentageLoad
-
   def fromRequest(service: Service, request: CreateAllowListConfigurationRequest, instant: Instant) = AllowListConfiguration(
-    service.value,
-    request.feature,
-    request.userLimitPerTimeframe,
-    request.timeframe.bound,
-    request.userLimit,
-    request.percentageLoad,
-    0,
-    0,
-    instant
+    service = service.value,
+    feature = request.feature,
+    userLimitPerTimeframe = request.userLimitPerTimeframe,
+    timeframe = request.timeframe.bound,
+    userLimit = request.userLimit,
+    percentageLoad = request.percentageLoad,
+    created = instant,
+    lastUpdated = instant,
+    acceptedCounter = 0,
+    totalCounter = 0
   )
 
-  private case class ConfigPatch(userLimitPerTimeframe: Option[Int],
-                                 timeframe: Option[String],
-                                 userLimit: Option[Int],
-                                 percentageLoad: Option[Int]):
+  case class Update private (userLimitPerTimeframe: Option[Int],
+                             timeframe: Option[String],
+                             userLimit: Option[Int],
+                             percentageLoad: Option[Int]):
     val isValid: Boolean =
       percentageLoad.forall(load => 100 >= load && load >= 0) &&
         userLimit.forall(_ >= 0) &&
         userLimitPerTimeframe.forall(_ >= 0)
-    require(isValid)
 
-  private def matchesUpdate(config: AllowListConfiguration)(update: Update): Boolean =
-    update.userLimitPerTimeframe.forall(_ == config.userLimitPerTimeframe) &&
-    update.timeframe.forall(_ == config.timeframe) &&
-    update.userLimit.flatMap { update => config.userLimit.map(_ == update) }.getOrElse(true) &&
-    update.percentageLoad.forall(_ == config.percentageLoad)
+    def nonEmpty: Boolean = !isEmpty
 
-  opaque type Update = ConfigPatch
+    def isEmpty: Boolean =
+      this match
+        case Update(None, None, None, None) => true
+        case _ => false
+
+    require(
+      isValid,
+      s"""Invalid request to update configuration
+          |  userLimitPerTimeframe=$userLimitPerTimeframe
+          |  timeframe=$timeframe
+          |  userLimit=$userLimit
+          |  percentageLoad=$percentageLoad""".stripMargin
+    )
+
   object Update:
-    given patchFormat: OFormat[Update] = Json.format[ConfigPatch]
+    given patchFormat: OFormat[Update] = Json.format
 
     def apply(userLimitPerTimeframe: Option[Int],
-      timeframe: Option[String],
-      userLimit: Option[Int],
-      percentageLoad: Option[Int]): Update =
-      val configUpdate = ConfigPatch(userLimitPerTimeframe, timeframe, userLimit, percentageLoad)
-      if (configUpdate.isValid) configUpdate
-      else throw RuntimeException(s"Invalid request to update configuration: $ConfigPatch")
-
-  extension (u: Update)
-    def userLimitPerTimeframe: Option[Int] = u.userLimitPerTimeframe
-    def timeframe: Option[String] = u.timeframe
-    def userLimit: Option[Int] = u.userLimit
-    def percentageLoad: Option[Int] = u.percentageLoad
+              timeframe: Option[String],
+              userLimit: Option[Int],
+              percentageLoad: Option[Int]): Update =
+      val update = new Update(userLimitPerTimeframe, timeframe, userLimit, percentageLoad)
+      if (update.isValid) update
+      else throw RuntimeException(s"Invalid request to update configuration: $update")

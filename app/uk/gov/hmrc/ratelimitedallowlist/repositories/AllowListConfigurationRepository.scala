@@ -17,6 +17,7 @@
 package uk.gov.hmrc.ratelimitedallowlist.repositories
 
 import com.mongodb.MongoException
+import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.ReturnDocument.AFTER
 import org.mongodb.scala.model.*
 import play.api.libs.json.OFormat
@@ -46,7 +47,7 @@ trait AllowListConfigurationRepository:
 class AllowListConfigurationRepositoryImpl @Inject()(
     mongoComponent: MongoComponent,
     config: Configuration,
-    applicationClock: Clock
+    clock: Clock
 )(using ExecutionContext) extends PlayMongoRepository[AllowListConfiguration](
     collectionName = "allow-list-configuration",
     mongoComponent = mongoComponent,
@@ -69,7 +70,7 @@ class AllowListConfigurationRepositoryImpl @Inject()(
   ) with AllowListConfigurationRepository with Logging:
 
   override def create(service: Service, request: CreateAllowListConfigurationRequest): Future[CreateResult] = {
-    val configuration = AllowListConfiguration.fromRequest(service, request, applicationClock.instant())
+    val configuration = AllowListConfiguration.fromRequest(service, request, clock.instant())
     collection
       .insertOne(configuration)
       .toFuture()
@@ -98,7 +99,7 @@ class AllowListConfigurationRepositoryImpl @Inject()(
     collection
       .find(Filters.equal("service", service.value))
       .toFuture()
- 
+
   override def get(allowList: AllowList): Future[Option[AllowListConfiguration]] =
     collection.find(allowList.filters)
       .toFuture()
@@ -116,17 +117,17 @@ class AllowListConfigurationRepositoryImpl @Inject()(
       .toFuture()
 
   override def patch(allowList: AllowList, update: AllowListConfiguration.Update): Future[UpdateResult] =
-    val updates =
-      Seq(
-        update.userLimitPerTimeframe.map(Updates.set("userLimitPerTimeframe", _)),
-        update.timeframe.map(Updates.set("timeframe", _)),
-        update.userLimit.map(Updates.set("userLimit", _)),
-        update.percentageLoad.map(Updates.set("percentageLoad", _))
-      )
-      .flatten
-
-    if updates.isEmpty then Future.successful(NoOpUpdateResult)
+    if update.isEmpty then Future.successful(NoOpUpdateResult)
     else
+      val updates: Seq[Bson] =
+        Seq(
+          update.userLimitPerTimeframe.map(Updates.set("userLimitPerTimeframe", _)),
+          update.timeframe.map(Updates.set("timeframe", _)),
+          update.userLimit.map(Updates.set("userLimit", _)),
+          update.percentageLoad.map(Updates.set("percentageLoad", _))
+        )
+          .flatten :+ Updates.set("lastUpdated", clock.instant())
+
       collection.findOneAndUpdate(
           allowList.filters,
           Updates.combine(updates: _*),

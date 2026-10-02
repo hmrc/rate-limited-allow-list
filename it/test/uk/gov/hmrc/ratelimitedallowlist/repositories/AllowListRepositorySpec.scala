@@ -152,7 +152,8 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
       percentageLoad = 100,
       acceptedCounter = 3,
       totalCounter = 3,
-      created = clock.now
+      created = clock.now,
+      lastUpdated = clock.now
     )
 
     def entry(time: Instant) = AllowListEntry(service1, feature1, Random.nextString(5), time)

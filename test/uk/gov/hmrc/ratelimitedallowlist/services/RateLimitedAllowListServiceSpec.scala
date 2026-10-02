@@ -40,7 +40,10 @@ class RateLimitedAllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFuture
     timeframe = Daily.bound,
     userLimit = Some(15),
     percentageLoad = 50,
-    created = Instant.now
+    created = Instant.now,
+    lastUpdated = Instant.now,
+    acceptedCounter = 0,
+    totalCounter = 0
   )
   private val identifier = "identifier value"
 

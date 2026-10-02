@@ -59,12 +59,21 @@ class AllowListConfigurationRepositorySpec
   private def allowListConfiguration(s: String, f: String) = AllowListConfiguration(
     service = s,
     feature = f,
+    isEnabled = false,
     userLimitPerTimeframe = 0,
     timeframe = Daily.bound,
     userLimit = Some(0),
     percentageLoad = 0,
-    created = now
+    created = now,
+    lastUpdated = now,
+    acceptedCounter = 0,
+    totalCounter = 0
   )
+
+  override def afterEach(): Unit = {
+    clock.resetTimeTravel()
+    super.afterEach()
+  }
 
   ".create" - {
     "must save an entry that does not already exist in the repository and set values to initialised values" in:
@@ -226,10 +235,12 @@ class AllowListConfigurationRepositorySpec
 
       val result: UpdateResult = repository.patch(
         AllowList(Service(service1), Feature(feature1)),
-        AllowListConfiguration.Update(None, None, None, None)
+        AllowListConfiguration.Update(None, None, None, None, None)
       ).futureValue
 
       result mustEqual NoOpUpdateResult
+      val sadf = findAll().futureValue.head
+      sadf.lastUpdated mustEqual now
 
     "must return NoOp when no existing allow list found" in :
       val entry1 = allowListConfiguration(service2, feature2)
@@ -240,7 +251,7 @@ class AllowListConfigurationRepositorySpec
 
       val result: UpdateResult = repository.patch(
         AllowList(Service(service1), Feature(feature1)),
-        AllowListConfiguration.Update(Some(1), None, None, None)
+        AllowListConfiguration.Update(Some(1), None, None, None, None)
       ).futureValue
 
       result mustEqual NoOpUpdateResult
@@ -252,22 +263,26 @@ class AllowListConfigurationRepositorySpec
 
       findAll().futureValue must contain theSameElementsAs Seq(entry1)
 
+      clock.fastForwardTime(60)
+
       val result: UpdateResult = repository.patch(
         AllowList(Service(service1), Feature(feature1)),
-        AllowListConfiguration.Update(Some(1), None, None, None)
+        AllowListConfiguration.Update(Some(1), None, None, None, None)
       ).futureValue
 
       result mustEqual UpdateSuccessful
+      findAll().futureValue.head.lastUpdated mustEqual now.plusSeconds(60)
 
     "must return UpdateSuccessful when updating all combinations of updates" in :
       List(
-        (1, Some(1), None, None, None),
-        (2, None, Some(Hourly.bound), None, None),
-        (3, None, None, Some(1), None),
-        (4, None, None, None, Some(1)),
-        (5, Some(5), Some(Weekly.bound), Some(5000), Some(100))
+        (1, Some(1), None, None, None, None),
+        (2, None, Some(Hourly.bound), None, None, None),
+        (3, None, None, Some(1), None, None),
+        (4, None, None, None, Some(1), None),
+        (5, None, None, None, None, Some(false)),
+        (6, Some(5), Some(Weekly.bound), Some(5000), Some(100), Some(false))
       ).foreach {
-        case (scenario, newLimitPerTimeframe, newTimeframe, newUserLimit, newPercentageLoad) =>
+        case (scenario, newLimitPerTimeframe, newTimeframe, newUserLimit, newPercentageLoad, newEnabledFlag) =>
           val serviceScenario = s"$service1$scenario"
           val featureScenario = s"$feature1$scenario"
           val entry1 = allowListConfiguration(serviceScenario, featureScenario)
@@ -281,25 +296,30 @@ class AllowListConfigurationRepositorySpec
 
           val result: UpdateResult = repository.patch(
             AllowList(Service(serviceScenario), Feature(featureScenario)),
-            AllowListConfiguration.Update(newLimitPerTimeframe, newTimeframe, newUserLimit, newPercentageLoad)
+            AllowListConfiguration.Update(newLimitPerTimeframe, newTimeframe, newUserLimit, newPercentageLoad, newEnabledFlag)
           ).futureValue
 
           val updatedData = repository.get(AllowList(Service(serviceScenario), Feature(featureScenario))).futureValue.get
-          if newLimitPerTimeframe.isDefined
-          then updatedData.userLimitPerTimeframe mustBe newLimitPerTimeframe.get
-          else updatedData.userLimitPerTimeframe mustBe originalData.userLimitPerTimeframe
 
-          if newTimeframe.isDefined
-          then updatedData.timeframe mustBe newTimeframe.get
-          else updatedData.timeframe mustBe originalData.timeframe
+          newLimitPerTimeframe match
+            case Some(value) => updatedData.userLimitPerTimeframe mustBe value
+            case None        => updatedData.userLimitPerTimeframe mustBe originalData.userLimitPerTimeframe
 
-          if newUserLimit.isDefined
-          then updatedData.userLimit mustBe newUserLimit
-          else updatedData.userLimit mustBe originalData.userLimit
+          newTimeframe match
+            case Some(value) => updatedData.timeframe mustBe value
+            case None        => updatedData.timeframe mustBe originalData.timeframe
 
-          if newPercentageLoad.isDefined
-          then updatedData.percentageLoad mustBe newPercentageLoad.get
-          else updatedData.percentageLoad mustBe originalData.percentageLoad
+          newUserLimit match
+            case value @ Some(_) => updatedData.userLimit mustBe value
+            case None        => updatedData.userLimit mustBe originalData.userLimit
+
+          newPercentageLoad match
+            case Some(value) => updatedData.percentageLoad mustBe value
+            case None        => updatedData.percentageLoad mustBe originalData.percentageLoad
+
+          newEnabledFlag match
+            case Some(value) => updatedData.isEnabled mustBe value
+            case None        => updatedData.isEnabled mustBe originalData.isEnabled
 
           result mustEqual UpdateSuccessful
           repository.collection.drop()

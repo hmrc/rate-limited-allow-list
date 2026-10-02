@@ -146,13 +146,15 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
     def testConfig(timeframe: Timeframe = Daily) = AllowListConfiguration(
       service = service1.value,
       feature = feature1.value,
-      userLimit = Some(20),
+      isEnabled = true,
       userLimitPerTimeframe = 5,
       timeframe = timeframe.bound,
+      userLimit = Some(20),
       percentageLoad = 100,
       acceptedCounter = 3,
       totalCounter = 3,
-      created = clock.now
+      created = clock.now,
+      lastUpdated = clock.now
     )
 
     def entry(time: Instant) = AllowListEntry(service1, feature1, Random.nextString(5), time)

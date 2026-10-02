@@ -59,6 +59,7 @@ class RateLimitedAllowListServiceImpl @Inject()(allowListConfiguration: AllowLis
         .flatMap:
           (withinTimeframe, total) =>
             if
+              config.isEnabled &&
               config.userLimit.forall(_ > total) &&
               withinTimeframe < config.userLimitPerTimeframe
             then

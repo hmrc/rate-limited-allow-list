@@ -25,6 +25,7 @@ import scala.language.implicitConversions
 
 case class AllowListConfiguration(service: String,
                                   feature: String,
+                                  isEnabled: Boolean,
                                   userLimitPerTimeframe: Int,
                                   timeframe: String,
                                   userLimit: Option[Int] = None,
@@ -58,6 +59,7 @@ object AllowListConfiguration extends MongoJavatimeFormats.Implicits:
   def fromRequest(service: Service, request: CreateAllowListConfigurationRequest, instant: Instant) = AllowListConfiguration(
     service = service.value,
     feature = request.feature,
+    isEnabled = false,
     userLimitPerTimeframe = request.userLimitPerTimeframe,
     timeframe = request.timeframe.bound,
     userLimit = request.userLimit,
@@ -71,7 +73,8 @@ object AllowListConfiguration extends MongoJavatimeFormats.Implicits:
   case class Update private (userLimitPerTimeframe: Option[Int],
                              timeframe: Option[String],
                              userLimit: Option[Int],
-                             percentageLoad: Option[Int]):
+                             percentageLoad: Option[Int],
+                             isEnabled: Option[Boolean]):
     val isValid: Boolean =
       percentageLoad.forall(load => 100 >= load && load >= 0) &&
         userLimit.forall(_ >= 0) &&
@@ -81,7 +84,7 @@ object AllowListConfiguration extends MongoJavatimeFormats.Implicits:
 
     def isEmpty: Boolean =
       this match
-        case Update(None, None, None, None) => true
+        case Update(None, None, None, None, None) => true
         case _ => false
 
     require(
@@ -90,7 +93,8 @@ object AllowListConfiguration extends MongoJavatimeFormats.Implicits:
           |  userLimitPerTimeframe=$userLimitPerTimeframe
           |  timeframe=$timeframe
           |  userLimit=$userLimit
-          |  percentageLoad=$percentageLoad""".stripMargin
+          |  percentageLoad=$percentageLoad
+          |  isEnabled=$isEnabled""".stripMargin
     )
 
   object Update:
@@ -99,7 +103,8 @@ object AllowListConfiguration extends MongoJavatimeFormats.Implicits:
     def apply(userLimitPerTimeframe: Option[Int],
               timeframe: Option[String],
               userLimit: Option[Int],
-              percentageLoad: Option[Int]): Update =
-      val update = new Update(userLimitPerTimeframe, timeframe, userLimit, percentageLoad)
+              percentageLoad: Option[Int],
+              isEnabled: Option[Boolean]): Update =
+      val update = new Update(userLimitPerTimeframe, timeframe, userLimit, percentageLoad, isEnabled)
       if (update.isValid) update
       else throw RuntimeException(s"Invalid request to update configuration: $update")

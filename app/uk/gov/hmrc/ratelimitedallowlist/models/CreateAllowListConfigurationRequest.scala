@@ -24,6 +24,7 @@ case class CreateAllowListConfigurationRequest(feature: String,
                                                timeframe: Timeframe,
                                                userLimit: Option[Int],
                                                percentageLoad: Int)
+
 object CreateAllowListConfigurationRequest:
   given OFormat[CreateAllowListConfigurationRequest] = Json.format
 

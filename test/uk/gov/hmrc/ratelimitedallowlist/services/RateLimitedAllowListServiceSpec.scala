@@ -36,6 +36,7 @@ class RateLimitedAllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFuture
   private val allowListConfig1 = AllowListConfiguration(
     service = service1.value,
     feature = feature1.value,
+    isEnabled = true,
     userLimitPerTimeframe = 3,
     timeframe = Daily.bound,
     userLimit = Some(15),

@@ -54,6 +54,7 @@ class RateLimitedAllowListAdminControllerSpec extends AnyFreeSpec, Matchers, Moc
   val data1 = AllowListConfiguration(
     service = service.value,
     feature = feature.value,
+    isEnabled = true,
     userLimitPerTimeframe = 10,
     timeframe = Daily.bound,
     userLimit = Some(100),
@@ -371,7 +372,7 @@ class RateLimitedAllowListAdminControllerSpec extends AnyFreeSpec, Matchers, Moc
         )
 
         val fakeRequest =FakeRequest(url)
-          .withBody(AllowListConfiguration.Update.apply(Some(1), Some(Hourly.bound), Some(1), Some(1)))
+          .withBody(AllowListConfiguration.Update.apply(Some(1), Some(Hourly.bound), Some(1), Some(1), Some(true)))
           .withHeaders("Authorization" -> "Token foo")
 
         val result = controller.patch(service, feature)(fakeRequest)
@@ -392,7 +393,7 @@ class RateLimitedAllowListAdminControllerSpec extends AnyFreeSpec, Matchers, Moc
         )
 
         val fakeRequest = FakeRequest(url)
-          .withBody(AllowListConfiguration.Update(None, None, None, None))
+          .withBody(AllowListConfiguration.Update(None, None, None, None, None))
           .withHeaders("Authorization" -> "Token foo")
 
         val result = controller.patch(service, feature)(fakeRequest)
@@ -413,7 +414,7 @@ class RateLimitedAllowListAdminControllerSpec extends AnyFreeSpec, Matchers, Moc
         )
 
         val fakeRequest = FakeRequest(url)
-            .withBody(AllowListConfiguration.Update(None, None, None, None))
+            .withBody(AllowListConfiguration.Update(None, None, None, None, None))
             .withHeaders("Authorization" -> "Token foo")
 
         val result = controller.patch(service, feature)(fakeRequest)
@@ -432,7 +433,7 @@ class RateLimitedAllowListAdminControllerSpec extends AnyFreeSpec, Matchers, Moc
       )
 
       val fakeRequest = FakeRequest(url)
-        .withBody(AllowListConfiguration.Update(None, None, None, None))
+        .withBody(AllowListConfiguration.Update(None, None, None, None, None))
 
       controller.patch(service, feature)(fakeRequest).failed.futureValue match
         case res: UpstreamErrorResponse => res.statusCode mustEqual 401

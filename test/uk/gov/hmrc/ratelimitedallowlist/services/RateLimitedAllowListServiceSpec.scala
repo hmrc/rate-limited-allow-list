@@ -120,6 +120,27 @@ class RateLimitedAllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFuture
           val service = RateLimitedAllowListServiceImpl(configurationRepository, allowListRepository, config)
 
           service.checkOrAdd(allowList1, identifier).futureValue mustEqual Excluded
+
+        "when enabled flag is disabled" in :
+          val allowListConfig = allowListConfig1
+            .copy(acceptedCounter = 0)
+            .copy(totalCounter = 0)
+            .copy(percentageLoad = 1)
+            .copy(isEnabled = false)
+
+          val configurationRepository = FakeAllowListConfigurationRepository(
+            getResult = Some(Some(allowListConfig)),
+            updateCounterResult = Some(allowListConfig)
+          )
+          val allowListRepository = FakeAllowListRepository(
+            checkResult = Some(false),
+            countWithinTimeframe = Some((1, 10)),
+            setResult = Some(Done)
+          )
+          val config = Configuration.from(Map("features.allow-checks" -> "true"))
+          val service = RateLimitedAllowListServiceImpl(configurationRepository, allowListRepository, config)
+
+          service.checkOrAdd(allowList1, identifier).futureValue mustEqual Excluded
       }
 
       "returns Added" - {

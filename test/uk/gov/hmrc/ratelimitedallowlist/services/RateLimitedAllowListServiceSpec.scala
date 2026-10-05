@@ -36,11 +36,15 @@ class RateLimitedAllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFuture
   private val allowListConfig1 = AllowListConfiguration(
     service = service1.value,
     feature = feature1.value,
+    isEnabled = true,
     userLimitPerTimeframe = 3,
     timeframe = Daily.bound,
     userLimit = Some(15),
     percentageLoad = 50,
-    created = Instant.now
+    acceptedCounter = 0,
+    totalCounter = 0,
+    created = Instant.now,
+    lastUpdated = Instant.now
   )
   private val identifier = "identifier value"
 
@@ -111,6 +115,27 @@ class RateLimitedAllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFuture
           val allowListRepository = FakeAllowListRepository(
             checkResult = Some(false),
             countWithinTimeframe = Some((10, 10))
+          )
+          val config = Configuration.from(Map("features.allow-checks" -> "true"))
+          val service = RateLimitedAllowListServiceImpl(configurationRepository, allowListRepository, config)
+
+          service.checkOrAdd(allowList1, identifier).futureValue mustEqual Excluded
+
+        "when enabled flag is disabled" in :
+          val allowListConfig = allowListConfig1
+            .copy(acceptedCounter = 0)
+            .copy(totalCounter = 0)
+            .copy(percentageLoad = 1)
+            .copy(isEnabled = false)
+
+          val configurationRepository = FakeAllowListConfigurationRepository(
+            getResult = Some(Some(allowListConfig)),
+            updateCounterResult = Some(allowListConfig)
+          )
+          val allowListRepository = FakeAllowListRepository(
+            checkResult = Some(false),
+            countWithinTimeframe = Some((1, 10)),
+            setResult = Some(Done)
           )
           val config = Configuration.from(Map("features.allow-checks" -> "true"))
           val service = RateLimitedAllowListServiceImpl(configurationRepository, allowListRepository, config)

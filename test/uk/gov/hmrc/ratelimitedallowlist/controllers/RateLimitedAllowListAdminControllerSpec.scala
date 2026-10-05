@@ -59,10 +59,10 @@ class RateLimitedAllowListAdminControllerSpec extends AnyFreeSpec, Matchers, Moc
     timeframe = Daily.bound,
     userLimit = Some(100),
     percentageLoad = 20,
-    created = clock.instant(),
-    lastUpdated = clock.instant(),
     acceptedCounter = 0, 
-    totalCounter = 0
+    totalCounter = 0,
+    created = clock.instant(),
+    lastUpdated = clock.instant()
   )
 
   val requestData = CreateAllowListConfigurationRequest(

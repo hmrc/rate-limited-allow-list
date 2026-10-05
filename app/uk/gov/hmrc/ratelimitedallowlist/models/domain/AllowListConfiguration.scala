@@ -30,10 +30,10 @@ case class AllowListConfiguration(service: String,
                                   timeframe: String,
                                   userLimit: Option[Int] = None,
                                   percentageLoad: Int,
-                                  created: Instant,
-                                  lastUpdated: Instant,
                                   private val acceptedCounter: Int,
-                                  private val totalCounter: Int):
+                                  private val totalCounter: Int,
+                                  private val created: Instant,
+                                  private val lastUpdated: Instant):
 
   require(100 >= percentageLoad && percentageLoad >= 0, s"Invalid percentage for $service/$feature: $percentageLoad")
 
@@ -63,10 +63,10 @@ object AllowListConfiguration extends MongoJavatimeFormats.Implicits:
     timeframe = request.timeframe.bound,
     userLimit = request.userLimit,
     percentageLoad = request.percentageLoad,
-    created = instant,
-    lastUpdated = instant,
     acceptedCounter = 0,
-    totalCounter = 0
+    totalCounter = 0,
+    created = instant,
+    lastUpdated = instant
   )
 
   case class Update private (userLimitPerTimeframe: Option[Int],

@@ -22,6 +22,7 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.ratelimitedallowlist.models.*
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.*
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.AllowListConfiguration.Givens.Http.format
 import uk.gov.hmrc.ratelimitedallowlist.models.request.ScopeLevel
 import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResult.*
 import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListConfigurationRepository, AllowListRepository}

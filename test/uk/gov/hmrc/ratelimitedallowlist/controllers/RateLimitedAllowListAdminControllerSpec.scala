@@ -210,7 +210,7 @@ class RateLimitedAllowListAdminControllerSpec extends AnyFreeSpec, Matchers, Moc
       val result = controller.getAllowLists(service)(fakeRequest)
 
       status(result) mustBe Status.OK
-      contentAsJson(result) mustBe Json.arr(Json.toJsObject(data1))
+      contentAsJson(result) mustBe Json.arr(data1.toJsonHttp)
     }
 
     "return 404 when there is no data for a service and feature" in {
@@ -265,7 +265,7 @@ class RateLimitedAllowListAdminControllerSpec extends AnyFreeSpec, Matchers, Moc
       val result = controller.get(service, feature)(fakeRequest)
 
       status(result) mustBe Status.OK
-      contentAsJson(result) mustBe Json.toJsObject(data1)
+      contentAsJson(result) mustBe data1.toJsonHttp
     }
 
     "return 400 when there is no data for a service and feature" in {

@@ -40,11 +40,10 @@ case class AllowListConfiguration(service: String,
   val serviceFeature = s"$service-$feature"
   lazy val asAllowList = AllowList(Service(service), Feature(feature))
 
-  def checkUserLoadBalance: Boolean = {
+  def checkUserLoadBalance: Boolean =
     if percentageLoad == 0 then false
     else if totalCounter == 0 then true
     else (acceptedCounter.toDouble / totalCounter * 100) < percentageLoad
-  }
 
   def matchesUpdate(update: AllowListConfiguration.Update): Boolean =
     update.userLimitPerTimeframe.forall(_ == userLimitPerTimeframe) &&

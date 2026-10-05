@@ -52,8 +52,12 @@ case class AllowListConfiguration(service: String,
       update.percentageLoad.forall(_ == percentageLoad)
 
 
-object AllowListConfiguration extends MongoJavatimeFormats.Implicits:
-  given format: OFormat[AllowListConfiguration] = Json.format[AllowListConfiguration]
+object AllowListConfiguration:
+  object Givens:
+    object Mongo extends MongoJavatimeFormats.Implicits:
+      given format: OFormat[AllowListConfiguration] = Json.format[AllowListConfiguration]
+    object Http:
+      given format: OFormat[AllowListConfiguration] = Json.format[AllowListConfiguration]
 
   def fromRequest(service: Service, request: CreateAllowListConfigurationRequest, instant: Instant) = AllowListConfiguration(
     service = service.value,

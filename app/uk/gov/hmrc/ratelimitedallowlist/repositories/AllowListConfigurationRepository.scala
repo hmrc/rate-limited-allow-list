@@ -51,7 +51,7 @@ class AllowListConfigurationRepositoryImpl @Inject()(
 )(using ExecutionContext) extends PlayMongoRepository[AllowListConfiguration](
     collectionName = "allow-list-configuration",
     mongoComponent = mongoComponent,
-    domainFormat = AllowListConfiguration.format,
+    domainFormat = AllowListConfiguration.Givens.Mongo.format,
     replaceIndexes = config.get[Boolean]("mongodb.collections.allow-list-configuration.replaceIndexes"),
     indexes = Seq(
       IndexModel(

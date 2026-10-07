@@ -32,6 +32,7 @@ import java.time.Clock
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.deriving.Mirror
 
 
 trait AllowListConfigurationRepository:
@@ -124,7 +125,8 @@ class AllowListConfigurationRepositoryImpl @Inject()(
           update.userLimitPerTimeframe.map(Updates.set("userLimitPerTimeframe", _)),
           update.timeframe.map(Updates.set("timeframe", _)),
           update.userLimit.map(Updates.set("userLimit", _)),
-          update.percentageLoad.map(Updates.set("percentageLoad", _))
+          update.percentageLoad.map(Updates.set("percentageLoad", _)),
+          update.isEnabled.map(Updates.set("isEnabled", _))
         )
           .flatten :+ Updates.set("lastUpdated", clock.instant())
 

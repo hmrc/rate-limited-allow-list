@@ -276,8 +276,8 @@ class AllowListConfigurationRepositorySpec
         (2, None, Some(Hourly.bound), None, None, None),
         (3, None, None, Some(1), None, None),
         (4, None, None, None, Some(1), None),
-        (5, None, None, None, None, Some(false)),
-        (6, Some(5), Some(Weekly.bound), Some(5000), Some(100), Some(false))
+        (5, None, None, None, None, Some(true)),
+        (6, Some(5), Some(Weekly.bound), Some(5000), Some(100), Some(true))
       ).foreach {
         case (scenario, newLimitPerTimeframe, newTimeframe, newUserLimit, newPercentageLoad, newEnabledFlag) =>
           val serviceScenario = s"$service1$scenario"

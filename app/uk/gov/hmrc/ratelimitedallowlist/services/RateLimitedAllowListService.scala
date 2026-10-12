@@ -23,6 +23,7 @@ import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListConfigurationRepo
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Success, Failure}
 
 trait RateLimitedAllowListService:
   def checkOrAdd(allowList: AllowList, identifier: String): Future[CheckResult]
@@ -39,9 +40,8 @@ class RateLimitedAllowListServiceImpl @Inject()(allowListConfiguration: AllowLis
     ifUserAlreadyExists(allowList, user)(
       allowListConfiguration.get(allowList).flatMap:
         case None => excludeUser
-        case Some(allowListConfig) =>
-          val isAccepted = allowListConfig.checkUserLoadBalance
-          handleUser(allowListConfig, user, isAccepted)
+        case Some(allowListConfig) if !allowListConfig.checkUserLoadBalance => excludeUser
+        case Some(allowListConfig) => handleUser(allowListConfig, user)
     )
 
   private def ifUserAlreadyExists(allowList: AllowList, user: String)(f: => Future[CheckResult]) =
@@ -52,18 +52,18 @@ class RateLimitedAllowListServiceImpl @Inject()(allowListConfiguration: AllowLis
           case true => Future.successful(Exists)
           case false => f
 
-  private def handleUser(config: AllowListConfiguration, user: String, accepted: Boolean): Future[CheckResult] =
-    if !accepted then excludeUser else
-      allowListConfiguration.updateAllowListPercentageCounters(config.asAllowList, accepted)
-      allowedUsers.countWithinTimeframe(config)
-        .flatMap:
-          (withinTimeframe, total) =>
-            if
-              config.isEnabled &&
-              config.userLimit.forall(_ > total) &&
-              withinTimeframe < config.userLimitPerTimeframe
-            then
-              allowedUsers.set(Service(config.service), Feature(config.feature), user)
-                .map(_ => Added)
-            else
-              excludeUser
+  private def handleUser(config: AllowListConfiguration, user: String): Future[CheckResult] = {
+    allowListConfiguration.updateAllowListPercentageCounters(config.asAllowList, true).onComplete:
+      case Success(_) => logger.debug(s"Percentage update successful for ${config.asAllowList}")
+      case Failure(e) => logger.error(s"Percentage update failed for ${config.asAllowList}", e)
+
+    allowedUsers.countWithinTimeframe(config.asAllowList, config.limits.timeframe).flatMap:
+      case (timeframeCount, currentCount) =>
+        if config.isEnabled &&
+          config.limits.max.forall(_ > currentCount) &&
+          config.limits.timeframe.maxOpt.forall(_ > timeframeCount)
+        then
+          allowedUsers.set(config.asAllowList, user).map(_ => Added)
+        else
+          excludeUser
+  }

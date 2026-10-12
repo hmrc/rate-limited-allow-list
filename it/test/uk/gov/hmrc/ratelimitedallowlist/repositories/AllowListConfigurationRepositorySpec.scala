@@ -20,11 +20,11 @@ import org.scalatest.OptionValues
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.freespec.AnyFreeSpecLike
 import org.scalatest.matchers.must.Matchers
+import org.scalatest.prop.TableDrivenPropertyChecks
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
-import uk.gov.hmrc.ratelimitedallowlist.models.CreateAllowListConfigurationRequest
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.*
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.Timeframe.*
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListConfiguration, *}
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.AllowListConfiguration.*
 import uk.gov.hmrc.ratelimitedallowlist.repositories.CreateResult.NoOpCreateResult
 import uk.gov.hmrc.ratelimitedallowlist.repositories.DeleteResult.*
 import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResult.{NoOpUpdateResult, UpdateSuccessful}
@@ -34,7 +34,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class AllowListConfigurationRepositorySpec
-  extends AnyFreeSpecLike, Matchers, DefaultPlayMongoRepositorySupport[AllowListConfiguration], OptionValues, ScalaFutures:
+  extends AnyFreeSpecLike, Matchers, DefaultPlayMongoRepositorySupport[AllowListConfiguration],
+    OptionValues, ScalaFutures, TableDrivenPropertyChecks:
 
   private val config = Configuration.load(Environment.simple())
   private val clock = TimeTravelClock()
@@ -48,27 +49,34 @@ class AllowListConfigurationRepositorySpec
   private val feature1 = "feature 1"
   private val feature2 = "feature 2"
 
-  private def createAllowListConfigurationRequest(f: String) = CreateAllowListConfigurationRequest(
+  private def createAllowListConfigurationRequest(f: String) = Create(
     feature = f,
-    userLimitPerTimeframe = 0,
-    timeframe = Daily,
-    userLimit = Some(0),
-    percentageLoad = 0
+    percentageLoad = 0,
+    timeframe = Some(Daily(0)),
+    userLimit = Some(0)
   )
 
   private def allowListConfiguration(s: String, f: String) = AllowListConfiguration(
     service = s,
     feature = f,
     isEnabled = false,
-    userLimitPerTimeframe = 0,
-    timeframe = Daily.bound,
-    userLimit = Some(0),
+    limits = AllowListLimits(
+      max = Some(0),
+      timeframe = Daily(0)
+    ),
     percentageLoad = 0,
     acceptedCounter = 0,
     totalCounter = 0,
     created = now,
     lastUpdated = now,
   )
+
+  private def update(timeframeLimit: Option[TimeframeLimit] = None,
+                     userLimit: Option[Int] = None,
+                     percentageLoad: Option[Int] = None,
+                     isEnabled: Option[Boolean] = None): Update =
+    Update(timeframeLimit, userLimit, percentageLoad, isEnabled)
+
 
   override def afterEach(): Unit = {
     clock.resetTimeTravel()
@@ -235,7 +243,7 @@ class AllowListConfigurationRepositorySpec
 
       val result: UpdateResult = repository.patch(
         AllowList(Service(service1), Feature(feature1)),
-        AllowListConfiguration.Update(None, None, None, None, None)
+        AllowListConfiguration.Update(None, None, None, None)
       ).futureValue
 
       result mustEqual NoOpUpdateResult
@@ -249,7 +257,7 @@ class AllowListConfigurationRepositorySpec
 
       val result: UpdateResult = repository.patch(
         AllowList(Service(service1), Feature(feature1)),
-        AllowListConfiguration.Update(Some(1), None, None, None, None)
+        AllowListConfiguration.Update(Some(Daily(1)), None, None, None)
       ).futureValue
 
       result mustEqual NoOpUpdateResult
@@ -264,61 +272,63 @@ class AllowListConfigurationRepositorySpec
       clock.fastForwardTime(60)
 
       val result: UpdateResult = repository.patch(
-        AllowList(Service(service1), Feature(feature1)),
-        AllowListConfiguration.Update(Some(1), None, None, None, None)
+        entry1.asAllowList,
+        AllowListConfiguration.Update(Some(Daily(1)), None, None, None)
       ).futureValue
 
       result mustEqual UpdateSuccessful
 
     "must return UpdateSuccessful when updating all combinations of updates" in :
-      List(
-        (1, Some(1), None, None, None, None),
-        (2, None, Some(Hourly.bound), None, None, None),
-        (3, None, None, Some(1), None, None),
-        (4, None, None, None, Some(1), None),
-        (5, None, None, None, None, Some(true)),
-        (6, Some(5), Some(Weekly.bound), Some(5000), Some(100), Some(true))
-      ).foreach {
-        case (scenario, newLimitPerTimeframe, newTimeframe, newUserLimit, newPercentageLoad, newEnabledFlag) =>
+      val scenarios =
+        Table(
+          ("Scenario", "AllowListConfiguration.Update"),
+          (1, update(timeframeLimit = Some(Unbounded))),
+          (2, update(timeframeLimit = Some(Weekdaily(1)))),
+          (3, update(userLimit = Some(200))),
+          (4, update(percentageLoad = Some(25))),
+          (5, update(isEnabled = Some(true))),
+          (6, update(isEnabled = Some(false))),
+          (7, update(Some(Weekly(100)), Some(5000), Some(100), Some(true)))
+        )
+
+      forAll(scenarios) {
+        case (scenario, update) =>
           val serviceScenario = s"$service1$scenario"
           val featureScenario = s"$feature1$scenario"
+          val allowList = AllowList(Service(serviceScenario), Feature(featureScenario))
+
           val entry1 = allowListConfiguration(serviceScenario, featureScenario)
+
           insert(entry1).futureValue
 
-          val originalData = repository.get(AllowList(Service(serviceScenario), Feature(featureScenario))).futureValue.get
-          originalData.userLimitPerTimeframe mustBe 0
-          originalData.timeframe mustBe Daily.bound
-          originalData.userLimit mustBe Some(0)
+          val originalData = repository.get(allowList).futureValue.get
+          originalData.limits.max.value mustBe 0
+          originalData.limits.timeframe.bound mustBe "daily"
+          originalData.limits.timeframe.maxOpt.value mustBe 0
           originalData.percentageLoad mustBe 0
 
-          val result: UpdateResult = repository.patch(
-            AllowList(Service(serviceScenario), Feature(featureScenario)),
-            AllowListConfiguration.Update(newLimitPerTimeframe, newTimeframe, newUserLimit, newPercentageLoad, newEnabledFlag)
-          ).futureValue
+          val result = repository.patch(allowList, update).futureValue
 
-          val updatedData = repository.get(AllowList(Service(serviceScenario), Feature(featureScenario))).futureValue.get
+          val updatedData = repository.get(allowList).futureValue.get
 
-          newLimitPerTimeframe match
-            case Some(value) => updatedData.userLimitPerTimeframe mustBe value
-            case None        => updatedData.userLimitPerTimeframe mustBe originalData.userLimitPerTimeframe
+          update.limits match
+            case Some(AllowListLimits.Update(Some(value), _)) => updatedData.limits.max.value mustBe value
+            case _ => updatedData.limits.max mustBe originalData.limits.max
 
-          newTimeframe match
-            case Some(value) => updatedData.timeframe mustBe value
-            case None        => updatedData.timeframe mustBe originalData.timeframe
+          update.limits match
+            case Some(AllowListLimits.Update(_, Some(value))) => updatedData.limits.timeframe mustBe value
+            case _ => updatedData.limits.timeframe mustBe originalData.limits.timeframe
 
-          newUserLimit match
-            case value @ Some(_) => updatedData.userLimit mustBe value
-            case None        => updatedData.userLimit mustBe originalData.userLimit
-
-          newPercentageLoad match
+          update.percentageLoad match
             case Some(value) => updatedData.percentageLoad mustBe value
-            case None        => updatedData.percentageLoad mustBe originalData.percentageLoad
+            case None => updatedData.percentageLoad mustBe originalData.percentageLoad
 
-          newEnabledFlag match
+          update.isEnabled match
             case Some(value) => updatedData.isEnabled mustBe value
-            case None        => updatedData.isEnabled mustBe originalData.isEnabled
+            case None => updatedData.isEnabled mustBe originalData.isEnabled
 
           result mustEqual UpdateSuccessful
+
           repository.collection.drop()
       }
   }
@@ -350,8 +360,7 @@ class AllowListConfigurationRepositorySpec
       findAll().futureValue mustEqual List(entry1)
   }
 
-
-  given Conversion[Service, String] with 
+  given Conversion[Service, String] with
     def apply(x: Service): String = x.value
 
   given Conversion[Feature, String] with 

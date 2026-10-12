@@ -17,7 +17,7 @@
 package uk.gov.hmrc.ratelimitedallowlist.repositories
 
 import uk.gov.hmrc.ratelimitedallowlist.models.Done
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListConfiguration, Feature, Service}
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowList, Feature, Service, TimeframeLimit}
 
 import scala.annotation.unused
 import scala.concurrent.Future
@@ -41,6 +41,10 @@ class FakeAllowListRepository(setResult: Option[Done] = None,
     Future.successful(setResult.getOrElse(throwNotImplemented("set")))
 
   @unused
+  override def set(allowList: AllowList, value: String): Future[Done] =
+    Future.successful(setResult.getOrElse(throwNotImplemented("set")))
+
+  @unused
   def remove(service: Service, feature: Feature, value: String): Future[DeleteResult] =
     Future.successful(removeResult.getOrElse(throwNotImplemented("remove")))
 
@@ -57,7 +61,7 @@ class FakeAllowListRepository(setResult: Option[Done] = None,
     Future.successful(countResult.getOrElse(throwNotImplemented("count")))
 
   @unused
-  def countWithinTimeframe(config: AllowListConfiguration): Future[(Long, Long)] =
+  def countWithinTimeframe(allowList: AllowList, timeframe: TimeframeLimit): Future[(Long, Long)] =
     Future.successful(countWithinTimeframe.getOrElse(throwNotImplemented("countWithinTimeframe")))
 
 }

@@ -38,8 +38,8 @@ class RateLimitedAllowListAdminController @Inject()(
   allowList: AllowListRepository
 )(using ExecutionContext) extends BackendController(cc), Logging:
 
-  def create(service: Service): Action[CreateAllowListConfigurationRequest] =
-    auth.authorized.admin.service(service).async(parse.json[CreateAllowListConfigurationRequest]):
+  def create(service: Service): Action[AllowListConfiguration.Create] =
+    auth.authorized.admin.service(service).async(parse.json[AllowListConfiguration.Create]):
       request =>
         allowListConfig.create(service, request.body)
           .map: _ =>

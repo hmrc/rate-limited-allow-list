@@ -32,7 +32,6 @@ import uk.gov.hmrc.internalauth.client.Resource
 import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
 import uk.gov.hmrc.ratelimitedallowlist.models.*
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.*
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.Timeframe.*
 import uk.gov.hmrc.ratelimitedallowlist.models.request.ScopeLevel
 import uk.gov.hmrc.ratelimitedallowlist.repositories.CreateResult.CreateSuccessful
 import uk.gov.hmrc.ratelimitedallowlist.repositories.DeleteResult.DeleteSuccessful
@@ -55,9 +54,10 @@ class RateLimitedAllowListAdminControllerSpec extends AnyFreeSpec, Matchers, Moc
     service = service.value,
     feature = feature.value,
     isEnabled = true,
-    userLimitPerTimeframe = 10,
-    timeframe = Daily.bound,
-    userLimit = Some(100),
+    limits = AllowListLimits(
+      max = Some(100),
+      timeframe = Daily(10)
+    ),
     percentageLoad = 20,
     acceptedCounter = 0, 
     totalCounter = 0,
@@ -65,12 +65,11 @@ class RateLimitedAllowListAdminControllerSpec extends AnyFreeSpec, Matchers, Moc
     lastUpdated = clock.instant()
   )
 
-  val requestData = CreateAllowListConfigurationRequest(
+  val requestData = AllowListConfiguration.Create(
     feature = feature.value,
-    userLimitPerTimeframe = 10,
-    timeframe = Daily,
-    userLimit = Some(100),
-    percentageLoad = 0
+    percentageLoad = 0,
+    timeframe = Some(Daily(10)),
+    userLimit = Some(100)
   )
   
   private val resources = Set(
@@ -372,7 +371,7 @@ class RateLimitedAllowListAdminControllerSpec extends AnyFreeSpec, Matchers, Moc
         )
 
         val fakeRequest =FakeRequest(url)
-          .withBody(AllowListConfiguration.Update.apply(Some(1), Some(Hourly.bound), Some(1), Some(1), Some(true)))
+          .withBody(AllowListConfiguration.Update(Some(Hourly(1)), Some(1), Some(1), Some(true)))
           .withHeaders("Authorization" -> "Token foo")
 
         val result = controller.patch(service, feature)(fakeRequest)
@@ -393,7 +392,7 @@ class RateLimitedAllowListAdminControllerSpec extends AnyFreeSpec, Matchers, Moc
         )
 
         val fakeRequest = FakeRequest(url)
-          .withBody(AllowListConfiguration.Update(None, None, None, None, None))
+          .withBody(AllowListConfiguration.Update(None, None, None, None))
           .withHeaders("Authorization" -> "Token foo")
 
         val result = controller.patch(service, feature)(fakeRequest)
@@ -414,7 +413,7 @@ class RateLimitedAllowListAdminControllerSpec extends AnyFreeSpec, Matchers, Moc
         )
 
         val fakeRequest = FakeRequest(url)
-            .withBody(AllowListConfiguration.Update(None, None, None, None, None))
+            .withBody(AllowListConfiguration.Update(None, None, None, None))
             .withHeaders("Authorization" -> "Token foo")
 
         val result = controller.patch(service, feature)(fakeRequest)
@@ -433,7 +432,7 @@ class RateLimitedAllowListAdminControllerSpec extends AnyFreeSpec, Matchers, Moc
       )
 
       val fakeRequest = FakeRequest(url)
-        .withBody(AllowListConfiguration.Update(None, None, None, None, None))
+        .withBody(AllowListConfiguration.Update(None, None, None, None))
 
       controller.patch(service, feature)(fakeRequest).failed.futureValue match
         case res: UpstreamErrorResponse => res.statusCode mustEqual 401

@@ -14,17 +14,26 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.ratelimitedallowlist.models
+package uk.gov.hmrc.ratelimitedallowlist.models.domain
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.Timeframe
 
-case class CreateAllowListConfigurationRequest(feature: String,
-                                               userLimitPerTimeframe: Int,
-                                               timeframe: Timeframe,
-                                               userLimit: Option[Int],
-                                               percentageLoad: Int)
+case class AllowListLimits(max: Option[Int], timeframe: TimeframeLimit)
 
-object CreateAllowListConfigurationRequest:
-  given OFormat[CreateAllowListConfigurationRequest] = Json.format
+object AllowListLimits:
 
+  given OFormat[AllowListLimits] = Json.format
+
+  case class Update(max: Option[Int], timeframe: Option[TimeframeLimit]):
+    val isValid: Boolean = max.forall(_ >= 0) && timeframe.forall(_.maxOpt.forall(_ >= 0))
+
+    def isEmpty: Boolean =
+      this match {
+        case Update(None, None) => true
+        case _ => false
+      }
+
+    require(isValid && !isEmpty, s"max=$max timeframe=$timeframe")
+
+  object Update:
+    given OFormat[Update] = Json.format

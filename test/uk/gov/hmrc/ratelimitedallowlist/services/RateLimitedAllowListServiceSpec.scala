@@ -22,8 +22,7 @@ import org.scalatest.matchers.must.Matchers
 import play.api.Configuration
 import uk.gov.hmrc.ratelimitedallowlist.models.Done
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.CheckResult.{Added, Excluded, Exists}
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.Timeframe.Daily
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowList, AllowListConfiguration, Feature, Service}
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowList, AllowListConfiguration, AllowListLimits, Daily, Feature, Service}
 import uk.gov.hmrc.ratelimitedallowlist.repositories.{FakeAllowListConfigurationRepository, FakeAllowListRepository}
 
 import java.time.Instant
@@ -37,9 +36,10 @@ class RateLimitedAllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFuture
     service = service1.value,
     feature = feature1.value,
     isEnabled = true,
-    userLimitPerTimeframe = 3,
-    timeframe = Daily.bound,
-    userLimit = Some(15),
+    limits = AllowListLimits(
+      max = Some(15),
+      timeframe = Daily(3)
+    ),
     percentageLoad = 50,
     acceptedCounter = 0,
     totalCounter = 0,
@@ -148,7 +148,10 @@ class RateLimitedAllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFuture
           List(
             allowListConfig1.copy(acceptedCounter = 0, totalCounter = 0, percentageLoad = 1),
             allowListConfig1.copy(acceptedCounter = 8, totalCounter = 10, percentageLoad = 81),
-            allowListConfig1.copy(acceptedCounter = 10000, totalCounter = 100000, percentageLoad = 99, userLimit = None)
+            allowListConfig1.copy(acceptedCounter = 10000,
+                                  totalCounter = 100000,
+                                  percentageLoad = 99,
+                                  limits = allowListConfig1.limits.copy(max = None))
           ).foreach { testConfig =>
             val configurationRepository = FakeAllowListConfigurationRepository(
               getResult = Some(Some(testConfig)),

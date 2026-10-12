@@ -23,8 +23,7 @@ import org.scalatest.matchers.must.Matchers
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.crypto.{Hasher, Scrambled}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowListConfiguration, AllowListEntry, Feature, Service, Timeframe}
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.Timeframe.*
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.*
 
 import java.time.temporal.ChronoUnit
 import java.time.temporal.ChronoUnit.{DAYS, HOURS}
@@ -143,13 +142,15 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
   }
 
   ".countWithinTimeframe" - {
-    def testConfig(timeframe: Timeframe = Daily) = AllowListConfiguration(
-      service = service1.value,
-      feature = feature1.value,
+    val allowList = AllowList(service1, feature1)
+    def testConfig(timeframeLimit: TimeframeLimit = Daily(5)) = AllowListConfiguration(
+      service = allowList.service.value,
+      feature = allowList.feature.value,
       isEnabled = true,
-      userLimitPerTimeframe = 5,
-      timeframe = timeframe.bound,
-      userLimit = Some(20),
+      limits = AllowListLimits(
+        max = Some(20),
+        timeframe = timeframeLimit
+      ),
       percentageLoad = 100,
       acceptedCounter = 3,
       totalCounter = 3,
@@ -157,7 +158,7 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
       lastUpdated = clock.now
     )
 
-    def entry(time: Instant) = AllowListEntry(service1, feature1, Random.nextString(5), time)
+    def entry(time: Instant) = AllowListEntry(allowList.service, allowList.feature, Random.nextString(5), time)
 
     "must only return the counts of documents for a given service and feature" in:
       val entry1 = AllowListEntry(service1, feature1, value1Hashed, fixedInstant)
@@ -167,7 +168,8 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
 
       Future.sequence(Seq(entry1, entry2, entry3, entry4).map(insert)).futureValue
 
-      repository.countWithinTimeframe(testConfig()).futureValue mustBe (2,2)
+      val config = testConfig()
+      repository.countWithinTimeframe(config.asAllowList, config.limits.timeframe).futureValue mustBe (2,2)
 
     "must correctly count documents within HOURLY timeframe as well as total count for a given service and feature" in:
       val maxYesterday = entry(clock.now.truncatedTo(HOURS).minusNanos(1)) // N-1:59:59 - outside
@@ -178,7 +180,7 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
 
       Future.sequence(Seq(maxYesterday, minToday, now, maxToday, minTomorrow).map(insert)).futureValue
 
-      repository.countWithinTimeframe(testConfig(Hourly)).futureValue mustBe (3,5)
+      repository.countWithinTimeframe(allowList, Hourly(5)).futureValue mustBe (3,5)
 
     "must correctly count documents within DAY timeframe as well as total count for a given service and feature" in:
       val maxSunday = entry(clock.now.truncatedTo(DAYS).minusNanos(1)) // Yesterday, 23:59:59 - outside
@@ -189,7 +191,8 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
 
       Future.sequence(Seq(maxSunday, minMonday, now, maxNextSunday, minNextMonday).map(insert)).futureValue
 
-      repository.countWithinTimeframe(testConfig()).futureValue mustBe (3,5)
+      val config = testConfig()
+      repository.countWithinTimeframe(allowList, config.limits.timeframe).futureValue mustBe (3, 5)
 
     "must correctly count documents within WEEKLY timeframe as well as total count for a given service and feature" in:
       val maxYesterday = entry(clock.startOfWeek.minusNanos(1)) // previous Sunday, 23:59:59 - outside
@@ -200,7 +203,7 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
 
       Future.sequence(Seq(maxYesterday, minToday, now, maxToday, minTomorrow).map(insert)).futureValue
 
-      repository.countWithinTimeframe(testConfig(Weekly)).futureValue mustBe (3,5)
+      repository.countWithinTimeframe(allowList, Weekly(5)).futureValue mustBe (3,5)
 
     "must correctly count documents within WEEKDAILY timeframe as well as total count for a given service and feature" in:
       val mondayBefore0859 = entry(clock.startOfWorkingWeek.minusNanos(1))
@@ -210,7 +213,7 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
 
       Future.sequence(Seq(mondayBefore0859, mondayAt0900, fridayAt1659, fridayAt1700).map(insert)).futureValue
 
-      repository.countWithinTimeframe(testConfig(Weekdaily)).futureValue mustBe (2,4)
+      repository.countWithinTimeframe(allowList, Weekdaily(5)).futureValue mustBe (2,4)
 
     "must correctly count documents with a variety of timeframes as well as total count for a given service and feature" in:
       val beforeThisWeek = entry(clock.startOfWeek.minusNanos(1))
@@ -221,15 +224,15 @@ class AllowListRepositorySpec extends AnyFreeSpecLike, Matchers, DefaultPlayMong
 
       Future.sequence(Seq(beforeThisWeek, beforeThisWorkingWeek, beforeToday, beforeThisHour, now).map(insert)).futureValue
 
-      repository.countWithinTimeframe(testConfig(Unbounded)).futureValue mustBe (5,5)
-      repository.countWithinTimeframe(testConfig(Weekly)).futureValue mustBe (4,5)
-      repository.countWithinTimeframe(testConfig(Weekdaily)).futureValue mustBe (3,5)
-      repository.countWithinTimeframe(testConfig(Daily)).futureValue mustBe (2,5)
-      repository.countWithinTimeframe(testConfig(Hourly)).futureValue mustBe (1,5)
+      repository.countWithinTimeframe(allowList, Unbounded).futureValue mustBe (5,5)
+      repository.countWithinTimeframe(allowList, Weekly(5)).futureValue mustBe (4,5)
+      repository.countWithinTimeframe(allowList, Weekdaily(5)).futureValue mustBe (3,5)
+      repository.countWithinTimeframe(allowList, Daily(5)).futureValue mustBe (2,5)
+      repository.countWithinTimeframe(allowList, Hourly(5)).futureValue mustBe (1,5)
   }
 
-  given Conversion[Service, String] with 
+  given Conversion[Service, String] with
     def apply(x: Service): String = x.value
 
-  given Conversion[Feature, String] with 
+  given Conversion[Feature, String] with
     def apply(x: Feature): String = x.value

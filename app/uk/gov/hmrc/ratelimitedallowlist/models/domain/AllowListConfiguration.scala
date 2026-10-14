@@ -16,9 +16,11 @@
 
 package uk.gov.hmrc.ratelimitedallowlist.models.domain
 
+import org.bson.conversions.Bson
+import org.mongodb.scala.model.Updates
 import play.api.libs.json.*
+import uk.gov.hmrc.mongo.play.json.Codecs
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
-import uk.gov.hmrc.ratelimitedallowlist.models.CreateAllowListConfigurationRequest
 
 import java.time.Instant
 import scala.language.implicitConversions
@@ -26,9 +28,7 @@ import scala.language.implicitConversions
 case class AllowListConfiguration(service: String,
                                   feature: String,
                                   isEnabled: Boolean,
-                                  userLimitPerTimeframe: Int,
-                                  timeframe: String,
-                                  userLimit: Option[Int] = None,
+                                  limits: AllowListLimits,
                                   percentageLoad: Int,
                                   private val acceptedCounter: Int,
                                   private val totalCounter: Int,
@@ -46,10 +46,7 @@ case class AllowListConfiguration(service: String,
     else (acceptedCounter.toDouble / totalCounter * 100) < percentageLoad
 
   def matchesUpdate(update: AllowListConfiguration.Update): Boolean =
-    update.userLimitPerTimeframe.forall(_ == userLimitPerTimeframe) &&
-      update.timeframe.forall(_ == timeframe) &&
-      update.userLimit.flatMap { update => userLimit.map(_ == update) }.getOrElse(true) &&
-      update.percentageLoad.forall(_ == percentageLoad)
+    AllowListConfiguration.matchesUpdate(this, update)
 
 
 object AllowListConfiguration:
@@ -59,55 +56,83 @@ object AllowListConfiguration:
     object Http:
       given format: OFormat[AllowListConfiguration] = Json.format[AllowListConfiguration]
 
-  def fromRequest(service: Service, request: CreateAllowListConfigurationRequest, instant: Instant) = AllowListConfiguration(
-    service = service.value,
-    feature = request.feature,
-    isEnabled = false,
-    userLimitPerTimeframe = request.userLimitPerTimeframe,
-    timeframe = request.timeframe.bound,
-    userLimit = request.userLimit,
-    percentageLoad = request.percentageLoad,
-    acceptedCounter = 0,
-    totalCounter = 0,
-    created = instant,
-    lastUpdated = instant
-  )
+  def fromRequest(service: Service, request: Create, instant: Instant): AllowListConfiguration = {
+    val initialTimeframe = request.timeframe.getOrElse(Unbounded)
+    val limits = AllowListLimits(max = request.userLimit, timeframe = initialTimeframe)
+    AllowListConfiguration(
+      service = service.value,
+      feature = request.feature,
+      isEnabled = false,
+      limits = limits,
+      percentageLoad = request.percentageLoad,
+      acceptedCounter = 0,
+      totalCounter = 0,
+      created = instant,
+      lastUpdated = instant
+    )
+  }
 
-  case class Update private (userLimitPerTimeframe: Option[Int],
-                             timeframe: Option[String],
-                             userLimit: Option[Int],
+  def matchesUpdate(config: AllowListConfiguration, update: AllowListConfiguration.Update): Boolean =
+      update.limits.forall(_.timeframe.forall(_ == config.limits.timeframe)) &&
+      update.limits.forall(_.max.forall(config.limits.max.contains)) &&
+      update.percentageLoad.forall(_ == config.percentageLoad) &&
+      update.isEnabled.forall(_ == config.isEnabled)
+
+  case class Create(feature: String,
+                    percentageLoad: Int,
+                    timeframe: Option[TimeframeLimit],
+                    userLimit: Option[Int])
+
+  object Create:
+    given OFormat[Create] = Json.format
+
+  case class Update private (limits: Option[AllowListLimits.Update],
                              percentageLoad: Option[Int],
                              isEnabled: Option[Boolean]):
+
     val isValid: Boolean =
-      percentageLoad.forall(load => 100 >= load && load >= 0) &&
-        userLimit.forall(_ >= 0) &&
-        userLimitPerTimeframe.forall(_ >= 0)
+      limits.forall(_.isValid) &&
+      percentageLoad.forall(load => 100 >= load && load >= 0)
 
     def nonEmpty: Boolean = !isEmpty
 
     def isEmpty: Boolean =
       this match
-        case Update(None, None, None, None, None) => true
+        case Update(None, None, None) => true
+        case Update(Some(limits), None, None) => limits.isEmpty
         case _ => false
 
     require(
       isValid,
       s"""Invalid request to update configuration
-          |  userLimitPerTimeframe=$userLimitPerTimeframe
-          |  timeframe=$timeframe
-          |  userLimit=$userLimit
+          |  limits=$limits
           |  percentageLoad=$percentageLoad
           |  isEnabled=$isEnabled""".stripMargin
     )
 
-  object Update:
-    given patchFormat: OFormat[Update] = Json.format
+  object Update extends Codecs:
+    given Reads[Update] = Json.reads
 
-    def apply(userLimitPerTimeframe: Option[Int],
-              timeframe: Option[String],
+    def apply(timeframeLimit: Option[TimeframeLimit],
               userLimit: Option[Int],
               percentageLoad: Option[Int],
               isEnabled: Option[Boolean]): Update =
-      val update = new Update(userLimitPerTimeframe, timeframe, userLimit, percentageLoad, isEnabled)
+      val allowListLimitUpdate = Option.when(userLimit.isDefined || timeframeLimit.isDefined)(
+        AllowListLimits.Update(userLimit, timeframeLimit)
+      )
+      val update = new Update(allowListLimitUpdate, percentageLoad, isEnabled)
       if (update.isValid) update
       else throw RuntimeException(s"Invalid request to update configuration: $update")
+
+    def toBson(u: Update): Seq[Bson] = (u match {
+      case Update(limits, percentageLoad, isEnabled) =>
+        limits.fold(List.empty[Option[Bson]]) {
+          case AllowListLimits.Update(max, tf) =>
+            List(
+              max.map(Updates.set("limits.max", _)),
+              tf.map(Updates.set("limits.timeframe", _)),
+            )
+        }
+        .appended(percentageLoad.map(Updates.set("percentageLoad", _)))
+        .appended(isEnabled.map(Updates.set("isEnabled", _)))
+    }).flatten

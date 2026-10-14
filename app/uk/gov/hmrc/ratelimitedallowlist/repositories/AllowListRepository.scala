@@ -27,7 +27,6 @@ import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.ratelimitedallowlist.models.Done
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.AllowListEntry.Field
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.*
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.Timeframe.*
 
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -39,11 +38,13 @@ object Res:
   implicit val format: OFormat[Res] = Json.format[Res]
 
 trait AllowListRepository:
+  @deprecated("Use set(allowList: AllowList, value: String")
   def set(service: Service, feature: Feature, value: String): Future[Done]
+  def set(allowList: AllowList, value: String): Future[Done]
   def clear(service: Service, feature: Feature): Future[Done]
   def checkExists(service: Service, feature: Feature, value: String): Future[Boolean]
   def count(service: Service, feature: Feature): Future[Long]
-  def countWithinTimeframe(config: AllowListConfiguration): Future[(Long, Long)]
+  def countWithinTimeframe(allowList: AllowList, timeframe: TimeframeLimit): Future[(Long, Long)]
 
 @Singleton
 class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
@@ -83,6 +84,9 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
       .recover:
         case e: MongoException if e.getCode == DuplicateErrorCode => Done
 
+  override def set(allowList: AllowList, value: String): Future[Done] =
+    set(allowList.service, allowList.feature, value)
+
   override def clear(service: Service, feature: Feature): Future[Done] =
     collection
       .deleteMany(Filters.and(
@@ -109,16 +113,16 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
       Filters.equal(Field.feature, feature.value)
     )).toFuture()
 
-  def countWithinTimeframe(config: AllowListConfiguration): Future[(Long, Long)] =
+  def countWithinTimeframe(allowList: AllowList, timeframe: TimeframeLimit): Future[(Long, Long)] =
     val totalQuery = collection.countDocuments(Filters.and(
-      Filters.equal(Field.service, config.service),
-      Filters.equal(Field.feature, config.feature)
+      Filters.equal(Field.service, allowList.service.value),
+      Filters.equal(Field.feature, allowList.feature.value)
     )).toFuture()
 
     val timeframeQuery = collection.countDocuments(Filters.and(
-      Filters.equal(Field.service, config.service),
-      Filters.equal(Field.feature, config.feature),
-      filterWithin(config.timeframe)
+      Filters.equal(Field.service, allowList.service.value),
+      Filters.equal(Field.feature, allowList.feature.value),
+      filterWithin(timeframe)
     )).toFuture()
 
     for
@@ -129,9 +133,10 @@ class AllowListRepositoryImpl @Inject()(mongoComponent: MongoComponent,
   private def filterBetween(lower: Instant, upper: Instant) =
     Filters.and(Filters.gte("created", lower), Filters.lt("created", upper))
 
-  private val filterWithin = (timeframe: String) => timeframe match
-    case Unbounded.bound => Filters.lte("created", clock.now)
-    case Hourly.bound    => filterBetween(clock.thisHour, clock.nextHour)
-    case Daily.bound     => filterBetween(clock.today, clock.tomorrow)
-    case Weekly.bound    => filterBetween(clock.startOfWeek, clock.nextWeek)
-    case Weekdaily.bound => filterBetween(clock.startOfWorkingWeek, clock.endOfWorkingWeek)
+  private val filterWithin: TimeframeLimit => Bson = {
+    case Unbounded => Filters.lte("created", clock.now)
+    case Hourly(_) => filterBetween(clock.thisHour, clock.nextHour)
+    case Daily(_) => filterBetween(clock.today, clock.tomorrow)
+    case Weekly(_) => filterBetween(clock.startOfWeek, clock.nextWeek)
+    case Weekdaily(_) => filterBetween(clock.startOfWorkingWeek, clock.endOfWorkingWeek)
+  }

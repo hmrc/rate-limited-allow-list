@@ -54,6 +54,7 @@ class RateLimitedAllowListServiceImpl @Inject()(allowListConfiguration: AllowLis
           case false => f
 
   private def handleUser(config: AllowListConfiguration, user: String, accepted: Boolean): Future[CheckResult] = {
+    val timeframeLimit = if config.timeframe == Unbounded.toString then Int.MaxValue else config.userLimitPerTimeframe
     allowListConfiguration.updateAllowListPercentageCounters(config.asAllowList, accepted)
       .flatMap: _ =>
         if !accepted then excludeUser else
@@ -63,7 +64,7 @@ class RateLimitedAllowListServiceImpl @Inject()(allowListConfiguration: AllowLis
                 if
                   config.isEnabled &&
                   config.userLimit.forall(_ > total) &&
-                  (config.timeframe != Unbounded.toString && withinTimeframe < config.userLimitPerTimeframe)
+                  withinTimeframe < timeframeLimit
                 then
                   allowedUsers.set(Service(config.service), Feature(config.feature), user)
                     .map(_ => Added)

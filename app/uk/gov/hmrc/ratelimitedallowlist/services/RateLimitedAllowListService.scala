@@ -53,17 +53,18 @@ class RateLimitedAllowListServiceImpl @Inject()(allowListConfiguration: AllowLis
           case false => f
 
   private def handleUser(config: AllowListConfiguration, user: String, accepted: Boolean): Future[CheckResult] =
-    if !accepted then excludeUser else
-      allowListConfiguration.updateAllowListPercentageCounters(config.asAllowList, accepted)
-      allowedUsers.countWithinTimeframe(config)
-        .flatMap:
-          (withinTimeframe, total) =>
-            if
-              config.isEnabled &&
-              config.userLimit.forall(_ > total) &&
-              withinTimeframe < config.userLimitPerTimeframe
-            then
-              allowedUsers.set(Service(config.service), Feature(config.feature), user)
-                .map(_ => Added)
-            else
-              excludeUser
+    allowListConfiguration.updateAllowListPercentageCounters(config.asAllowList, accepted)
+      .flatMap: _ =>
+        if !accepted then excludeUser else
+          allowedUsers.countWithinTimeframe(config)
+            .flatMap:
+              (withinTimeframe, total) =>
+                if
+                  config.isEnabled &&
+                  config.userLimit.forall(_ > total) &&
+                  withinTimeframe < config.userLimitPerTimeframe
+                then
+                  allowedUsers.set(Service(config.service), Feature(config.feature), user)
+                    .map(_ => Added)
+                else
+                  excludeUser

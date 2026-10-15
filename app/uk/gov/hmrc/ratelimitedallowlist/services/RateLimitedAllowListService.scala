@@ -19,6 +19,7 @@ package uk.gov.hmrc.ratelimitedallowlist.services
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.*
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.CheckResult.*
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.Timeframe.Unbounded
 import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListConfigurationRepository, AllowListRepository}
 
 import javax.inject.Inject
@@ -52,7 +53,7 @@ class RateLimitedAllowListServiceImpl @Inject()(allowListConfiguration: AllowLis
           case true => Future.successful(Exists)
           case false => f
 
-  private def handleUser(config: AllowListConfiguration, user: String, accepted: Boolean): Future[CheckResult] =
+  private def handleUser(config: AllowListConfiguration, user: String, accepted: Boolean): Future[CheckResult] = {
     allowListConfiguration.updateAllowListPercentageCounters(config.asAllowList, accepted)
       .flatMap: _ =>
         if !accepted then excludeUser else
@@ -62,9 +63,10 @@ class RateLimitedAllowListServiceImpl @Inject()(allowListConfiguration: AllowLis
                 if
                   config.isEnabled &&
                   config.userLimit.forall(_ > total) &&
-                  withinTimeframe < config.userLimitPerTimeframe
+                  (config.timeframe != Unbounded.toString && withinTimeframe < config.userLimitPerTimeframe)
                 then
                   allowedUsers.set(Service(config.service), Feature(config.feature), user)
                     .map(_ => Added)
                 else
                   excludeUser
+  }

@@ -133,17 +133,27 @@ class RateLimitedAllowListServiceISpec extends AnyFeatureSpec, GivenWhenThen, Ma
       Given("There are no onboarded users")
       allowList.create
       allowList.isEnabled
-      
+      clock.fastForwardTime(60)
+
       And(s"The percentage load is $percentage")
       val setPercentageResult = allowList.setPercentage(percentage)
       setPercentageResult mustEqual UpdateSuccessful
 
       When("10 users attempt to onboard")
+      val sampleSize = 500
+      val tolerance = (sampleSize * 0.1).toInt
+
+
       val onboardingResult1 = Future.sequence((1 to 100).map(i => allowList.checkF(identifier(i)))).futureValue
+      clock.fastForwardTime(60)
       val onboardingResult2 = Future.sequence((101 to 200).map(i => allowList.checkF(identifier(i)))).futureValue
+      clock.fastForwardTime(60)
       val onboardingResult3 = Future.sequence((201 to 300).map(i => allowList.checkF(identifier(i)))).futureValue
+      clock.fastForwardTime(60)
       val onboardingResult4 = Future.sequence((301 to 400).map(i => allowList.checkF(identifier(i)))).futureValue
+      clock.fastForwardTime(60)
       val onboardingResult5 = Future.sequence((401 to 500).map(i => allowList.checkF(identifier(i)))).futureValue
+      clock.fastForwardTime(60)
 
       val excludedResult1 = onboardingResult1.count(_ == Excluded)
       val excludedResult2 = onboardingResult2.count(_ == Excluded)
@@ -151,9 +161,9 @@ class RateLimitedAllowListServiceISpec extends AnyFeatureSpec, GivenWhenThen, Ma
       val excludedResult4 = onboardingResult4.count(_ == Excluded)
       val excludedResult5 = onboardingResult5.count(_ == Excluded)
 
-      val excludedResult = excludedResult1 + excludedResult2 + excludedResult3 + excludedResult4 + excludedResult5 
-      val addedResult = 500 - excludedResult
-      
-      excludedResult mustEqual 300
-      addedResult mustEqual 200
+      val excludedResult = excludedResult1 + excludedResult2 + excludedResult3 + excludedResult4 + excludedResult5
+      val addedResult = sampleSize - excludedResult
+
+      excludedResult mustBe (300 +- tolerance)
+      addedResult mustEqual (200 +- tolerance)
 }

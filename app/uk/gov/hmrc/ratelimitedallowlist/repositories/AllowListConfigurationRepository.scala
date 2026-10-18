@@ -138,7 +138,6 @@ class AllowListConfigurationRepositoryImpl @Inject()(
           case None => NoOpUpdateResult
           case Some(result) if result.matchesUpdate(update) => UpdateSuccessful
           case failedResult =>
-            println(s"Update: $update did not produce expected result, result of update: $failedResult")
             logger.info(s"Update: $update did not produce expected result, result of update: $failedResult")
             UpdateFailed
 

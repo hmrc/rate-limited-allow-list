@@ -75,7 +75,8 @@ class RateLimitedAllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFuture
             updateCounterResult = Some(allowListConfig1)
           )
           val allowListRepository = FakeAllowListRepository(
-            checkResult = Some(false)
+            checkResult = Some(false),
+            countWithinTimeframe = Some((0, 30))
           )
           val config = Configuration.from(Map("features.allow-checks" -> "true"))
           val service = RateLimitedAllowListServiceImpl(configurationRepository, allowListRepository, config)
@@ -87,7 +88,10 @@ class RateLimitedAllowListServiceSpec extends AnyFreeSpec, Matchers, ScalaFuture
             getResult = Some(Some(allowListConfig1.copy(acceptedCounter = 8, totalCounter = 10, percentageLoad = 80))),
             updateCounterResult = Some(allowListConfig1)
           )
-          val allowListRepository = FakeAllowListRepository(checkResult = Some(false))
+          val allowListRepository = FakeAllowListRepository(
+            checkResult = Some(false),
+            countWithinTimeframe = Some((0, 30))
+          )
           val config = Configuration.from(Map("features.allow-checks" -> "true"))
           val service = RateLimitedAllowListServiceImpl(configurationRepository, allowListRepository, config)
 

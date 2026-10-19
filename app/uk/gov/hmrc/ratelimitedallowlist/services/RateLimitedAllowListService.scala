@@ -40,8 +40,7 @@ class RateLimitedAllowListServiceImpl @Inject()(allowListConfiguration: AllowLis
       allowListConfiguration.get(allowList).flatMap:
         case None => excludeUser
         case Some(allowListConfig) =>
-          val isAccepted = allowListConfig.checkUserLoadBalance
-          handleUser(allowListConfig, user, isAccepted)
+          handleUser(allowListConfig, user)
     )
 
   private def ifUserAlreadyExists(allowList: AllowList, user: String)(f: => Future[CheckResult]) =
@@ -52,20 +51,21 @@ class RateLimitedAllowListServiceImpl @Inject()(allowListConfiguration: AllowLis
           case true => Future.successful(Exists)
           case false => f
 
-  private def handleUser(config: AllowListConfiguration, user: String, accepted: Boolean): Future[CheckResult] = {
-    val timeframeLimit = config.limits.timeframe.maxOpt.getOrElse(Int.MaxValue)
-    allowListConfiguration.updateAllowListPercentageCounters(config.asAllowList, accepted)
-      .flatMap: _ =>
-        if !accepted then excludeUser else
-          allowedUsers.countWithinTimeframe(config.asAllowList, config.limits.timeframe)
-            .flatMap:
-              (withinTimeframe, total) =>
-                if
-                  config.isEnabled &&
-                  config.limits.max.forall(total < _ ) &&
-                  withinTimeframe < timeframeLimit
-                then
-                  allowedUsers.set(config.asAllowList, user).map(_ => Added)
-                else
-                  excludeUser
-  }
+  private def handleUser(config: AllowListConfiguration, user: String): Future[CheckResult] =
+    allowedUsers.countWithinTimeframe(config.asAllowList, config.limits.timeframe)
+      .flatMap:
+        (withinTimeframe, total) =>
+          if
+            config.isEnabled &&
+            config.limits.max.forall(total < _ ) &&
+            withinTimeframe < config.limits.timeframe.maxOpt.getOrElse(Int.MaxValue)
+          then
+            val accepted = config.checkUserLoadBalance
+            allowListConfiguration
+              .updateAllowListPercentageCounters(config.asAllowList, accepted)
+              .flatMap: _ =>
+                if accepted
+                then allowedUsers.set(config.asAllowList, user).map(_ => Added)
+                else excludeUser
+          else
+            excludeUser

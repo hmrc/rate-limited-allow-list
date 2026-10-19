@@ -134,5 +134,7 @@ object AllowListConfiguration:
             )
         }
         .appended(percentageLoad.map(Updates.set("percentageLoad", _)))
+        .appended(percentageLoad.map(_ => Updates.set("acceptedCounter", 0)))
+        .appended(percentageLoad.map(_ => Updates.set("totalCounter", 0)))
         .appended(isEnabled.map(Updates.set("isEnabled", _)))
     }).flatten

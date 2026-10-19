@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.ratelimitedallowlist.repositories
 
-import uk.gov.hmrc.ratelimitedallowlist.models.CreateAllowListConfigurationRequest
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.AllowListConfiguration.Create
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowList, AllowListConfiguration, AllowListMetadata, Feature, Service}
 
 import scala.annotation.unused
@@ -104,7 +104,7 @@ class FakeAllowListConfigurationRepository(createResult: Option[CreateResult] = 
     )
 
   @unused
-  def create(service: Service, configuration: CreateAllowListConfigurationRequest): Future[CreateResult] =
+  def create(service: Service, configuration: Create): Future[CreateResult] =
     Future.successful(createResult.getOrElse(throwNotImplemented("create")))
 
   @unused

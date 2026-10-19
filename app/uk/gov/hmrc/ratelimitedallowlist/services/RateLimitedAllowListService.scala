@@ -19,7 +19,6 @@ package uk.gov.hmrc.ratelimitedallowlist.services
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.*
 import uk.gov.hmrc.ratelimitedallowlist.models.domain.CheckResult.*
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.Timeframe.Unbounded
 import uk.gov.hmrc.ratelimitedallowlist.repositories.{AllowListConfigurationRepository, AllowListRepository}
 
 import javax.inject.Inject
@@ -54,20 +53,19 @@ class RateLimitedAllowListServiceImpl @Inject()(allowListConfiguration: AllowLis
           case false => f
 
   private def handleUser(config: AllowListConfiguration, user: String, accepted: Boolean): Future[CheckResult] = {
-    val timeframeLimit = if config.timeframe == Unbounded.toString then Int.MaxValue else config.userLimitPerTimeframe
+    val timeframeLimit = config.limits.timeframe.maxOpt.getOrElse(Int.MaxValue)
     allowListConfiguration.updateAllowListPercentageCounters(config.asAllowList, accepted)
       .flatMap: _ =>
         if !accepted then excludeUser else
-          allowedUsers.countWithinTimeframe(config)
+          allowedUsers.countWithinTimeframe(config.asAllowList, config.limits.timeframe)
             .flatMap:
               (withinTimeframe, total) =>
                 if
                   config.isEnabled &&
-                  config.userLimit.forall(_ > total) &&
+                  config.limits.max.forall(total < _ ) &&
                   withinTimeframe < timeframeLimit
                 then
-                  allowedUsers.set(Service(config.service), Feature(config.feature), user)
-                    .map(_ => Added)
+                  allowedUsers.set(config.asAllowList, user).map(_ => Added)
                 else
                   excludeUser
   }

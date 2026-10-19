@@ -23,20 +23,17 @@ import org.mongodb.scala.model.*
 import play.api.libs.json.OFormat
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.ratelimitedallowlist.models.CreateAllowListConfigurationRequest
-import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowList, AllowListConfiguration, Service}
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import uk.gov.hmrc.ratelimitedallowlist.models.domain.{AllowList, AllowListConfiguration, Daily, Hourly, Service, TimeframeLimit, Unbounded, Weekdaily, Weekly}
 import uk.gov.hmrc.ratelimitedallowlist.repositories.UpdateResult.{NoOpUpdateResult, UpdateFailed, UpdateSuccessful}
 
 import java.time.Clock
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.deriving.Mirror
-
 
 trait AllowListConfigurationRepository:
-  def create(service: Service, request: CreateAllowListConfigurationRequest): Future[CreateResult]
+  def create(service: Service, request: AllowListConfiguration.Create): Future[CreateResult]
   def getServices(filterBy: Seq[String]): Future[Seq[Service]]
   def get(service: Service): Future[Seq[AllowListConfiguration]]
   def get(allowList: AllowList): Future[Option[AllowListConfiguration]]
@@ -68,9 +65,16 @@ class AllowListConfigurationRepositoryImpl @Inject()(
           .unique(true)
       ),
     ),
+    extraCodecs = Codecs.playFormatCodecsBuilder(TimeframeLimit.format)
+      .forType[Unbounded.type]
+      .forType[Hourly]
+      .forType[Daily]
+      .forType[Weekdaily]
+      .forType[Weekly]
+      .build
   ) with AllowListConfigurationRepository with Logging:
 
-  override def create(service: Service, request: CreateAllowListConfigurationRequest): Future[CreateResult] = {
+  override def create(service: Service, request: AllowListConfiguration.Create): Future[CreateResult] = {
     val configuration = AllowListConfiguration.fromRequest(service, request, clock.instant())
     collection
       .insertOne(configuration)
@@ -121,14 +125,8 @@ class AllowListConfigurationRepositoryImpl @Inject()(
     if update.isEmpty then Future.successful(NoOpUpdateResult)
     else
       val updates: Seq[Bson] =
-        Seq(
-          update.userLimitPerTimeframe.map(Updates.set("userLimitPerTimeframe", _)),
-          update.timeframe.map(Updates.set("timeframe", _)),
-          update.userLimit.map(Updates.set("userLimit", _)),
-          update.percentageLoad.map(Updates.set("percentageLoad", _)),
-          update.isEnabled.map(Updates.set("isEnabled", _))
-        )
-          .flatten :+ Updates.set("lastUpdated", clock.instant())
+        AllowListConfiguration.Update.toBson(update) 
+          :+ Updates.set("lastUpdated", clock.instant())
 
       collection.findOneAndUpdate(
           allowList.filters,

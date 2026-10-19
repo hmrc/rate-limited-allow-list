@@ -23,7 +23,7 @@ import java.time.Instant
 
 case class AllowListMetadata(service: String,
                              feature: String,
-                             tokens: Int, // TODO: Change to Long
+                             tokens: Int,
                              canIssueTokens: Boolean,
                              created: Instant,
                              lastUpdated: Instant)

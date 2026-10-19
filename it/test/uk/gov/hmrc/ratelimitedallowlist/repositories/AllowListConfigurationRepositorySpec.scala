@@ -278,6 +278,40 @@ class AllowListConfigurationRepositorySpec
 
       result mustEqual UpdateSuccessful
 
+    "must reset user counts when percentage load is changed" in :
+      val zeroedPercentageCounts = allowListConfiguration(service1, feature1)
+      val entry1 = zeroedPercentageCounts.copy(
+        percentageLoad = 20,
+        acceptedCounter = 8,
+        totalCounter = 40
+      )
+
+      insert(entry1).futureValue
+
+      findAll().futureValue must contain theSameElementsAs Seq(entry1)
+
+      clock.fastForwardTime(60)
+
+      val resultWithoutPercentageUpdate: UpdateResult = repository.patch(
+        entry1.asAllowList,
+        AllowListConfiguration.Update(Some(Daily(0)), None, None, None)
+      ).futureValue
+
+      def storedPercentageConfig = findAll().futureValue.head.toString.split(",").slice(5, 8)
+
+      resultWithoutPercentageUpdate mustEqual UpdateSuccessful
+      storedPercentageConfig mustBe Array("20", "8", "40")
+                                 // Array(percentage, accepted, total)
+
+      val resultWithPercentageUpdate: UpdateResult = repository.patch(
+        entry1.asAllowList,
+        AllowListConfiguration.Update(Some(Daily(0)), None, Some(25), None)
+      ).futureValue
+
+      resultWithPercentageUpdate mustEqual UpdateSuccessful
+      storedPercentageConfig mustBe Array("25", "0", "0")
+                                 // Array(percentage, accepted, total)
+
     "must return UpdateSuccessful when updating all combinations of updates" in :
       val scenarios =
         Table(
